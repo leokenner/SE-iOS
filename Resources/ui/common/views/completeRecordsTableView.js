@@ -116,22 +116,9 @@ function completeRecordsTableView()
 				row.add(view);
 				
 				row.setHeight(view.height+40);
+				if(table.data[0]) { table.insertRowBefore(0, row); }
+				else { table.appendRow(row); }
 				
-				//If another appointment is added, increase the height of the row
-				Ti.App.addEventListener('eventAdded', function() {  
-					row.setHeight(view.height+40);
-				});
-				
-				var section = table.data[0]?table.data[0]:Titanium.UI.createTableViewSection();
-				var temp_rows = table.data[0]?table.data[0].getRows():[];
-				temp_rows.unshift(row);
-				section.rows = temp_rows;
-				table.deleteSection(0);
-				table.appendSection(section);
-				//table.data = [sectionRecords, sectionPersonal];
-				table.scrollToIndex(0);
-				
-				loadTable();
 			}
 		}); 
 	});

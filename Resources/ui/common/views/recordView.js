@@ -36,6 +36,7 @@ function recordView(input)
 				var appointment = full_record[i];
 				var doctor = getDoctorByAppointmentLocal(appointment.id);
 				appointment.doctor = doctor[0];
+				appointment.categories = getCategoriesOfAppointmentLocal(appointment.id);
 				appointment.symptoms = getSymptomsOfAppointmentLocal(appointment.id);
 				appointment.activities = getActivitiesForAppointmentLocal(appointment.id);
 				appointment.treatments = getTreatmentsForAppointmentLocal(appointment.id);
@@ -90,7 +91,6 @@ function recordView(input)
 				row.add(appointment);
 				table.appendRow(row);
 				table.setHeight(table.height+150);
-				//Ti.App.fireEvent('eventAdded');
 				table.fireEvent('eventAdded');
 			}
 		});

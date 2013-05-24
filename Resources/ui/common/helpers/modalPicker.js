@@ -38,10 +38,11 @@ var done_btn = Titanium.UI.createButton({
     systemButton: Ti.UI.iPhone.SystemButton.DONE
 });
 done_btn.addEventListener('click', function() {
-	if(type == null) { self.result = picker.getSelectedRow(0).title; }
-	else if(type == 'picker_columns') { self.result = picker.getSelectedRow(0).title + ' '+picker.getSelectedRow(1).title; }
+	if(type == 'picker_columns') { self.result = picker.getSelectedRow(0).title + ' '+picker.getSelectedRow(1).title; }
 	else if(type == Ti.UI.PICKER_TYPE_DATE_AND_TIME) { self.result = picker.getValue(); }
+	else if(type == Ti.UI.PICKER_TYPE_COUNT_DOWN_TIMER) { self.result = picker.getCountDownDuration(); }
 	else if(type == Ti.UI.PICKER_TYPE_DATE) { self.result = picker.getValue(); }
+	else { self.result = picker.getSelectedRow(0).title; }
 	self.animate(Ti.UI.createAnimation({
 		top: Titanium.Platform.displayCaps.platformHeight*0.9,
 		curve: Ti.UI.ANIMATION_CURVE_EASE_IN,
@@ -113,7 +114,9 @@ else
   													  minDate: min_date,
   													  maxDate: max_date, 
   													  value: value,
-  													  minuteInterval: 5 });											 
+  													  minuteInterval: 5 });	
+  													  
+  		if(type == Ti.UI.PICKER_TYPE_COUNT_DOWN_TIMER) picker.setCountDownDuration(selected);											  										 
   													  
   		picker.addEventListener('change',function(e) {
     		picker.setValue(e.value);
@@ -155,10 +158,11 @@ function ipadModalPicker(type, data, selected)
 	
 	var rightButton = Ti.UI.createButton({ systemButton: Titanium.UI.iPhone.SystemButton.DONE, });
 	rightButton.addEventListener('click', function(e){
-		if(type == null) { popover.result = picker.getSelectedRow(0).title; }
-		else if(type == 'picker_columns') { popover.result = picker.getSelectedRow(0).title + ' '+picker.getSelectedRow(1).title; }
+		if(type == 'picker_columns') { popover.result = picker.getSelectedRow(0).title + ' '+picker.getSelectedRow(1).title; }
 		else if(type == Ti.UI.PICKER_TYPE_DATE_AND_TIME) { popover.result = picker.getValue(); }
+		else if(type == Ti.UI.PICKER_TYPE_COUNT_DOWN_TIMER) { popover.result = picker.getCountDownDuration(); }
 		else if(type == Ti.UI.PICKER_TYPE_DATE) { popover.result = picker.getValue(); }
+		else { popover.result = picker.getSelectedRow(0).title; }
 	    popover.hide();
 	});
 	
@@ -221,6 +225,7 @@ function ipadModalPicker(type, data, selected)
 	  													  minDate: min_date,
 	  													  maxDate: max_date, 
 	  													  value: value,
+	  													  countDownDuration: selected,
 	  													  minuteInterval: 5 });											 
 	  													  
 	  		picker.addEventListener('change',function(e) {

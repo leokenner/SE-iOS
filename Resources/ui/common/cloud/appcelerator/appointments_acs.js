@@ -24,12 +24,29 @@ function getAppointmentsACS(query /*, entry_local_id */)
 				    }
 				    
 				    var doctor = e.appointments[i].doctor;
+				    var categories = e.appointments[i].categories?e.appointments[i].categories:[];
 				    var symptoms = e.appointments[i].symptoms?e.appointments[i].symptoms:[];
-					var appointment_local_id = insertAppointmentLocal(entry_local_id, appointment.date, appointment.time, appointment.diagnosis);
-					updateAppointmentCompleteStatus(appointment_local_id, appointment.complete);
+					var appointment_local_id = insertAppointmentLocal(entry_local_id, appointment.date, appointment.time);
+					updateAppointmentLocal(appointment_local_id, 'date', appointment.date);
+					updateAppointmentLocal(appointment_local_id, 'time', appointment.time);
+					updateAppointmentLocal(appointment_local_id, 'diagnosis', appointment.diagnosis);
+					updateAppointmentLocal(appointment_local_id, 'final_diagnosis', appointment.final_diagnosis);
+					Ti.API.info('alhflkawfhlkwahffawfalhf...............'+appointment.duration);
+					if(appointment.duration == undefined) {
+						appointment.duration = { 
+							hours: '0',
+							minutes: '0',
+						}
+					}
+					updateAppointmentLocal(appointment_local_id, 'duration_hours', appointment.duration.hours);
+					updateAppointmentLocal(appointment_local_id, 'duration_minutes', appointment.duration.minutes);
+					updateAppointmentLocal(appointment_local_id, 'additional_notes', appointment.additional_notes);
+					updateAppointmentLocal(appointment_local_id, 'status', appointment.status);
 					updateAppointmentCloudIdLocal(appointment_local_id, appointment.id);
 					insertDoctorForAppointmentLocal(appointment_local_id, doctor.name, doctor.location, doctor.street, doctor.city, doctor.state, doctor.zip, doctor.country);
-					updateAppointmentCompleteStatus(appointment_local_id, appointment.complete);
+					for(var j=0; j < categories.length; j++) {
+						insertCategoryForAppointmentLocal(appointment_local_id, categories[j]);
+					}
 					for(var j=0; j < symptoms.length; j++) {
 						insertSymptomForAppointmentLocal(appointment_local_id, symptoms[j]);
 					}
@@ -52,6 +69,12 @@ function updateAppointmentsACS()
 		var doctors = getDoctorByAppointmentLocal(appointments[i].id);
 		var doctor = doctors[0];
 		appointments[i].doctor = doctor;
+		
+		var categories = getCategoriesOfAppointmentLocal(appointments[i].id);
+		for(var j=0; j < categories.length; j++) {
+			categories[j].user_id = user.cloud_id;
+		}
+		appointments[i].categories = categories;
 		
 		var symptoms = getSymptomsOfAppointmentLocal(appointments[i].id);
 		for(var j=0; j < symptoms.length; j++) {

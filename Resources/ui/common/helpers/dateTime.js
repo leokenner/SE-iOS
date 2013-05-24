@@ -159,3 +159,17 @@ function calculateAge(birthDate, otherDate) {
     return result;
 }
 
+function millisecondsToHoursMinutes(milliseconds)
+{
+	var minutes = Math.floor((milliseconds%(1000*60*60))/(1000*60));
+	var hours = Math.floor(milliseconds/(1000*60*60));
+	var seconds = Math.floor(((milliseconds % (1000*60*60)) % (1000*60)) / 1000);
+	
+	return { minutes: minutes, hours: hours };
+}
+
+function hoursMinutesToMilliseconds(hours, minutes)
+{
+	return (((hours*60)+minutes)*60)*1000;
+}
+
