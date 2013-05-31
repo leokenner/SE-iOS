@@ -85,6 +85,38 @@ else {
  }
 }
 
+//input: left_time, right_time: strings
+//output: boolean
+function isLeftTimeGreater(left_time, right_time)
+{
+	var time1=null;
+	var time2=null;
+	
+	var dateTime = timeFormatted(new Date());
+	
+	if(left_time == null) time1 = new Date();
+	else time1 = new Date(dateTime.date+' '+left_time);
+	if(right_time == null) time2 = new Date();
+	else time2 = new Date(dateTime.date+' '+right_time);
+	if(time1.getHours() > time2.getHours()) return true;
+	if(time1.getHours() == time2.getHours())
+		if(time1.getMinutes() > time2.getMinutes()) return true;
+	
+	return false;
+}
+
+function isLeftEqualToRight(left_time, right_time)
+{
+	if(left_time == null || right_time == null) return null;
+	var dateTime = timeFormatted(new Date());
+	var time1 = new Date(dateTime.date+' '+left_time);
+	var time2 = new Date(dateTime.date+' '+right_time);
+	if(time1.getHours() != time2.getHours()) return false;
+	if(time1.getMinutes() != time2.getMinutes()) return false;
+	
+	return true;
+}
+
 //function to round the mintues to the nearest 5 so we can use 5 min interval in picker
 function roundMinutes(d) {
 	var min = d.getMinutes();
@@ -159,7 +191,7 @@ function calculateAge(birthDate, otherDate) {
     return result;
 }
 
-function millisecondsToHoursMinutes(milliseconds)
+function millisecondsToHoursMinutesSeconds(milliseconds)
 {
 	var minutes = Math.floor((milliseconds%(1000*60*60))/(1000*60));
 	var hours = Math.floor(milliseconds/(1000*60*60));

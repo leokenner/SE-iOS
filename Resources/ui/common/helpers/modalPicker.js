@@ -42,6 +42,7 @@ done_btn.addEventListener('click', function() {
 	else if(type == Ti.UI.PICKER_TYPE_DATE_AND_TIME) { self.result = picker.getValue(); }
 	else if(type == Ti.UI.PICKER_TYPE_COUNT_DOWN_TIMER) { self.result = picker.getCountDownDuration(); }
 	else if(type == Ti.UI.PICKER_TYPE_DATE) { self.result = picker.getValue(); }
+	else if(type == Ti.UI.PICKER_TYPE_TIME) { self.result = picker.getValue(); }
 	else { self.result = picker.getSelectedRow(0).title; }
 	self.animate(Ti.UI.createAnimation({
 		top: Titanium.Platform.displayCaps.platformHeight*0.9,
@@ -52,7 +53,6 @@ done_btn.addEventListener('click', function() {
 });
 win.rightNavButton = done_btn;
 win.hideTabBar();
-
 
 
 if(type == null) 
@@ -103,6 +103,12 @@ else
 			var max_date = new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null);
 			var value = new Date(selected);
 		}
+		else if(type == Ti.UI.PICKER_TYPE_TIME && data != 'DOB' && data != 'incident') {
+			var min_date = new Date(d.getFullYear(),d.getMonth(),d.getDate()-1,d.getHours(),d.getMinutes(),null,null);;
+			var max_date = new Date(d.getFullYear()+2,12,31,d.getHours(),d.getMinutes(),null,null);
+			var this_date = timeFormatted(new Date()).date;
+			var value = roundMinutes(new Date(this_date+' '+selected));
+		} 
 		//Its a regular date/time picker
 		else {
 			var min_date = new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null);;
@@ -214,6 +220,12 @@ function ipadModalPicker(type, data, selected)
 				var max_date = new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null);
 				var value = new Date(selected);
 			}
+			else if(type == Ti.UI.PICKER_TYPE_TIME && data != 'DOB' && data != 'incident') {
+				var min_date = new Date(d.getFullYear(),d.getMonth(),d.getDate()-1,d.getHours(),d.getMinutes(),null,null);;
+				var max_date = new Date(d.getFullYear()+2,12,31,d.getHours(),d.getMinutes(),null,null);
+				var this_date = timeFormatted(new Date()).date;
+				var value = roundMinutes(new Date(this_date+' '+selected));
+			}
 			//Its a regular date/time picker
 			else {
 				var min_date = new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null);;
@@ -225,8 +237,9 @@ function ipadModalPicker(type, data, selected)
 	  													  minDate: min_date,
 	  													  maxDate: max_date, 
 	  													  value: value,
-	  													  countDownDuration: selected,
-	  													  minuteInterval: 5 });											 
+	  													  minuteInterval: 5 });
+	  													  
+	  		if(type == Ti.UI.PICKER_TYPE_COUNT_DOWN_TIMER) picker.setCountDownDuration(selected);											  											 
 	  													  
 	  		picker.addEventListener('change',function(e) {
 	    		picker.setValue(e.value);
