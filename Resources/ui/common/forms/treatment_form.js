@@ -28,6 +28,7 @@ var treatment = {
 		interval: input.treatment.interval?input.treatment.interval:'every day',
 		alert: input.treatment.alert?input.treatment.alert:'Time of event',
 		times: input.treatment.times?input.treatments.times:[],
+		localNotifications: input.treatment.local_notifications?input.treatment.local_notifications:[],
 		categories: input.treatment.categories?input.treatment.categories:[],
 		symptoms: input.treatment.symptoms?input.treatment.symptoms:[],
 		sideEffects: input.treatment.sideEffects?input.treatment.sideEffects:[],
@@ -805,6 +806,10 @@ if(Titanium.Platform.osname == 'ipad') modalPicker.show({ view: date, });
 		if(modalPicker.result) { 
 			var newDate = modalPicker.result.toDateString();
 			date.text = newDate;
+			if(sectionDetails.rows[sectionDetails.rowCount-1].backgroundColor == '#CCC') {
+				sectionDetails.rows[sectionDetails.rowCount-1].backgroundColor = 'blue';
+				sectionDetails.rows[sectionDetails.rowCount-1].children[0].text = 'Save Changes';
+			}
 		}
 	window.setTouchEnabled(true);
 	if(window.leftNavButton != null) { 
@@ -923,6 +928,48 @@ function saveSolidLiquid()
 	updateTreatmentLocal(treatment.id, 'dosage', dosage.value);
 	updateTreatmentLocal(treatment.id, 'frequency', frequency.text);
 	updateTreatmentLocal(treatment.id, 'interval', interval.text);
+	
+	deleteTimesForTreatmentLocal(treatment.id);
+	
+	var days = Math.floor(( Date.parse(end_date.text) - Date.parse(start_date.text) ) / 86400000);
+	if(alert_text.text === 'Time of event') var advance = 0;
+	else var advance = alert_text.text.split(' ')[0];
+	if(type.text == 'Solid') {
+		var alertBody = dosage.text+" pills of "+medication.text+" for "+child.first_name;
+	}
+	else {
+		var alertBody = dosage.text+" of "+medication.text+" for "+child.first_name;
+	}
+	var i=0;
+	var d = new Date(start_date.text+' '+treatment.times[0]);
+	
+	if(alert_text.text != 'Never') {	
+		do {
+				treatment.localNotifications[i] = [];
+				d.setDate(d.getDate()+i); 	
+				for(var j=0; j < treatment.times.length; j++) {
+					if(advance < 5) //It means the text was alert time is in the hours
+						d.setHours(new Date(start_date.text+' '+treatment.times[j]).getHours()-advance);
+					else 
+						d.setMinutes(new Date(start_date.text+' '+treatment.times[j]).getMinutes()-advance);
+					
+					var local_notification_id = d.getTime();
+					
+					if(!treatment.localNotifications[i][j]) { 
+						treatment.localNotifications[i][j] = local_notification_id;
+						Ti.App.iOS.scheduleLocalNotification({ 
+							alertBody: alertBody, 
+							alertAction: "view details", 
+							userInfo: {"id": local_notification_id }, 
+							date: new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null),  
+						});
+					}	
+				}
+				i++;
+		} while(i < days);
+	}
+
+	Ti.API.info(treatment.localNotifications);
 	
 	treatment.dosage = dosage.value;
 	treatment.frequency = frequency.text;
@@ -1118,6 +1165,10 @@ alertsPage_title.addEventListener('click', function() {
 		frequency.text = treatment.times.length;
 		if(treatment.times.length == 0) {
 			alertsPage_title.color = '#CCC';
+		}
+		if(sectionSolidLiquid.rows[sectionSolidLiquid.rowCount-1].backgroundColor == '#CCC') {
+			sectionSolidLiquid.rows[sectionSolidLiquid.rowCount-1].backgroundColor = 'blue';
+			sectionSolidLiquid.rows[sectionSolidLiquid.rowCount-1].children[0].text = 'Save Changes';
 		}
 	});  
 });
