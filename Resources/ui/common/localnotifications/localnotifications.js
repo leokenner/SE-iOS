@@ -1,3 +1,5 @@
+//Alternate days not implemented yet for activities/treatments
+
 var isAppActive=true;
 var isAppointmentConfirmWindowOpen=false;
 var isActivityConfirmWindowOpen=false; //This flag is used to ensure confirm window is not opened twice
@@ -15,14 +17,16 @@ function scheduleAppointmentLocalNotifications(appointment, child)
 		else if(appointment.alert === "2 hours before") d.setHours(d.getHours()-2);
 		else if(appointment.alert === "1 day before") d.setDate(d.getDate()-1);
 
-		if(appointment.repeat === "once only") var repeat = null;
-		else if(appointment.repeat === "every day") var repeat = "daily";
-		else var repeat = appointment.repeat.split(' ')[1] + "ly";	
+		var repeat=null;
+		if(appointment.repeat === "every day") repeat = "daily";
+		else if(appointment.repeat) repeat = appointment.repeat.split(' ')[1] + "ly"; 	
 	
-	if(appointment.alert === "1 day before") var alertBody = "tomorrow";
-	else var alertBody = "in " + appointment.alert.split(' ')[0] + " " + appointment.alert.split(' ')[1];
+	var alertBody=null;
+	if(appointment.alert === "1 day before") alertBody = "tomorrow";
+	else if(appointment.alert) alertBody = "in " + appointment.alert.split(' ')[0] + " " + appointment.alert.split(' ')[1];
 	
-	timeIntervalIds[timeIntervalIds.length] = setTimeout(function() {
+	if(d > new Date()) {
+		timeIntervalIds[timeIntervalIds.length] = setTimeout(function() {
 							var the_appointment = getAppointmentLocal(appointment.id); //If it doesnt exist anymore, do not display the confirm dialog
 							if(the_appointment.length == 0) return;
 							
@@ -87,13 +91,16 @@ function scheduleAppointmentLocalNotifications(appointment, child)
 							}
 						}, d.getTime() - (new Date).getTime());
 	
-		Ti.App.iOS.scheduleLocalNotification({ 
-			alertBody: child.first_name+" has an appointment with Dr. "+appointment.doctor.name+" "+alertBody, 
-			alertAction: "view",
-			repeat: repeat, 
-			userInfo: {"child": child, "type": "appointment", "appointment": JSON.stringify(appointment) }, 
-			date: new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null),  
-		});
+		
+			Ti.App.iOS.scheduleLocalNotification({ 
+				alertBody: child.first_name+" has an appointment with Dr. "+appointment.doctor.name+" "+alertBody, 
+				alertAction: "view",
+				repeat: repeat,
+				sound: "ui/common/localnotifications/pop.caf", 
+				userInfo: {"child": child, "type": "appointment", "appointment": JSON.stringify(appointment) }, 
+				date: new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null),  
+			});
+		}
 	
 	}	
 	
@@ -183,6 +190,7 @@ function scheduleActivityLocalNotifications(activity, child)
 						Ti.App.iOS.scheduleLocalNotification({ 
 							alertBody: child.first_name+" needs to complete an activity", 
 							alertAction: "view", 
+							sound: "ui/common/localnotifications/pop.caf", 
 							userInfo: {"id": local_notification_id, "child": child, "type": "activity", "activity": JSON.stringify(activity) }, 
 							date: new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null),  
 						});		
@@ -291,7 +299,8 @@ function scheduleTreatmentLocalNotifications(treatment, child)
 						 	 
 						Ti.App.iOS.scheduleLocalNotification({ 
 							alertBody: child.first_name+" needs to take medication", 
-							alertAction: "view", 
+							alertAction: "view",
+							sound: "ui/common/localnotifications/pop.caf",  
 							userInfo: {"id": local_notification_id, "child": child, "type": "treatment", "treatment": JSON.stringify(treatment) }, 
 							date: new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null),  
 						});	
@@ -305,8 +314,10 @@ function scheduleTreatmentLocalNotifications(treatment, child)
 var scheduleAllLocalNotifications = function()
 {	
 	Ti.App.iOS.cancelAllLocalNotifications();
-	for(var i=0; i < timeIntervalIds.length; i++) {
+	var length = timeIntervalIds.length;
+	for(var i=length-1; i > -1; i--) {
 		clearInterval(timeIntervalIds[i]);
+		timeIntervalIds.pop();
 	}
 	
 	var children = getAllChildrenLocal();
