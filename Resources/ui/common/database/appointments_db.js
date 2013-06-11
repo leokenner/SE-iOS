@@ -70,7 +70,7 @@ function insertSymptomForAppointmentLocal(appointment_id, symptom)
 }
 
 
-function getResultSet(resultSet, results)
+function getAppointmentResultSet(resultSet, results)
 {
 	while (resultSet.isValidRow()) {
 			results.push({
@@ -95,6 +95,11 @@ function getResultSet(resultSet, results)
     }
     resultSet.close();
     
+    for(var i=0; i < results.length; i++) {
+    	results[i].doctor = getDoctorByAppointmentLocal(results[i].id)[0];
+    	results[i].symptoms = getSymptomsOfAppointmentLocal(results[i].id);
+    }
+    
     return results;	
 }
 
@@ -107,7 +112,7 @@ function getAllAppointmentsLocal()
 	var results = [];
 	var resultSet = db.execute(sql);
     	
-	return getResultSet(resultSet, results);
+	return getAppointmentResultSet(resultSet, results);
 }
 
 
@@ -118,7 +123,7 @@ function getAppointmentsForEntryLocal(entry_id)
 	var results = [];
 	var resultSet = db.execute(sql);	
 
-	return getResultSet(resultSet, results);
+	return getAppointmentResultSet(resultSet, results);
 }
 
 
@@ -129,7 +134,7 @@ function getAppointmentByCloudIdLocal(cloud_id)
 	var results = [];
 	var resultSet = db.execute(sql);
 
-	return getResultSet(resultSet, results);
+	return getAppointmentResultSet(resultSet, results);
 }
 
 
@@ -141,7 +146,7 @@ function getAppointmentByCloudIdLocal(cloud_id)
 	var results = [];
 	var resultSet = db.execute(sql);
 
-	return getResultSet(resultSet, results);
+	return getAppointmentResultSet(resultSet, results);
 }
 
 
@@ -153,7 +158,7 @@ function getAppointmentLocal(appointment_id)
 	var results = [];
 	var resultSet = db.execute(sql);
 
-	return getResultSet(resultSet, results);
+	return getAppointmentResultSet(resultSet, results);
 }
 
 

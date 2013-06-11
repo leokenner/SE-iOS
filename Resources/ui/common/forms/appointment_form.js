@@ -4,6 +4,7 @@
 function appointment(input)
 {
 	Ti.include('ui/common/helpers/dateTime.js');
+	Ti.include('ui/common/helpers/strings.js');
 	Ti.include('ui/common/database/database.js');
 	
 	var appointment = {
@@ -18,11 +19,11 @@ function appointment(input)
 								hours: 0,
 								minutes: 0,
 								},
-		repeat: input.repeat?input.repeat:'Once only',
-		alert: input.alert?input.alert:'30 mins before',
+		repeat: input.repeat?input.repeat:'once only',
+		alert: input.alert?input.alert:'30 minutes before',
 		categories: input.categories?input.categories:[],
 		symptoms: input.symptoms?input.symptoms:[],
-		additional_notes: input.additional_notes?input.additional_notes:null,
+		additional_notes: input.additional_notes?input.additional_notes:"No additional notes",
 		doctor: input.doctor?input.doctor:{
 								name: null,
 								location: null,
@@ -83,7 +84,7 @@ function appointment(input)
 			navGroupWindow.close();
 			return;
 		}
-		var confirm = Titanium.UI.createAlertDialog({ title: 'Are you sure?', 
+		var confirm = Titanium.UI.createAlertDialog({ title: 'Are you sure you want to delete the record of this appointment?', 
 								message: 'This cannot be undone', 
 								buttonNames: ['Yes','No'], cancel: 1 });
 								
@@ -94,6 +95,7 @@ function appointment(input)
 
   			 switch (g.index) {
      		 case 0:
+     		 	Ti.App.fireEvent('eventSaved');
      		  	appointment.cloud_id = appointment.cloud_id?appointment.cloud_id:getAppointmentLocal(appointment.id)[0].cloud_id;
 				deleteAppointmentLocal(appointment.id);			
 				deleteObjectACS('appointments', appointment.cloud_id);
@@ -108,10 +110,6 @@ function appointment(input)
 		confirm.show();
 	});
 	
-	function removeWhiteSpace(input)
-	{
-		return input.replace(/^\s\s*/, ''); //Remove preceeding white space
-	}
 	
 	save_btn.addEventListener('click', function() {
 	/*	if(table.scrollable == false) { return; }
@@ -238,7 +236,7 @@ var sectionStatus = Ti.UI.createTableViewSection({ headerTitle: 'Status (tap to 
 sectionStatus.add(Ti.UI.createTableViewRow());
 sectionStatus.add(Ti.UI.createTableViewRow({ backgroundColor: '#CCC', }));
 var status_title = Titanium.UI.createLabel({ text: 'Status', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
-var status = Ti.UI.createLabel({ left: '40%', width: 150, text: appointment.status, font: { fontWeight: 'bold', fontSize: 20, }, });
+var status = Ti.UI.createLabel({ left: '40%', width: 150, height: 60, text: appointment.status, font: { fontWeight: 'bold', fontSize: 20, }, });
 sectionStatus.rows[0].add(status_title);
 sectionStatus.rows[0].add(status);
 sectionStatus.rows[1].add(Ti.UI.createLabel({ text: 'Changes Saved!', textAlign: 'center', font: { fontSize: 15, }, width: '80%', }));
@@ -253,19 +251,16 @@ sectionDiagnosis.rows[0].add(final_diagnosis);
 sectionDiagnosis.rows[1].add(Ti.UI.createLabel({ text: 'Changes Saved!', font: { fontSize: 15, }, }));
 
 var sectionPrescription = Ti.UI.createTableViewSection();
-sectionPrescription.add(Ti.UI.createTableViewRow({ title: 'Prescribed treatments', hasChild: true, }));
+sectionPrescription.add(Ti.UI.createTableViewRow({ title: 'Prescribed treatments', height: 60, hasChild: true, }));
 
 var sectionAdditionalNotes = Ti.UI.createTableViewSection({ headerTitle: 'Additional Notes', });
-sectionAdditionalNotes.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', }));
-sectionAdditionalNotes.add(Ti.UI.createTableViewRow({ height: 135, selectedBackgroundColor: 'white', }));
-sectionAdditionalNotes.add(Ti.UI.createTableViewRow({ backgroundColor: '#CCC', }));
-sectionAdditionalNotes.rows[0].add(Ti.UI.createLabel({ 
-									left: 15,
-									top: 5,
-									text: 'This is where you make any additional notes about things you might have discussed with the doctor.', }));
-var additionalNotes_field = Titanium.UI.createTextArea({ hintText: 'Additional notes', value: appointment.additional_notes, width: '100%', top: 5, font: { fontSize: 17 }, height: 115, borderRadius: 10 });
-sectionAdditionalNotes.rows[1].add(additionalNotes_field);
-sectionAdditionalNotes.rows[2].add(Ti.UI.createLabel({ text: 'Changes Saved!', font: { fontSize: 15, }, }));
+sectionAdditionalNotes.add(Ti.UI.createTableViewRow({ height: 90, selectedBackgroundColor: 'white', hasChild: true, }));
+var additional_notes = Ti.UI.createLabel({ left: 15, width: '90%', text: appointment.additional_notes, font: { fontSize: 15, }, });
+sectionAdditionalNotes.rows[0].add(additional_notes);
+if(appointment.id) {
+	sectionAdditionalNotes.add(Ti.UI.createTableViewRow({ backgroundColor: '#CCC', }));
+	sectionAdditionalNotes.rows[sectionAdditionalNotes.rowCount-1].add(Ti.UI.createLabel({ text: 'Changes Saved!', textAlign: 'center', font: { fontSize: 15, }, }));
+}
 
 var sectionDateTime = Ti.UI.createTableViewSection({ headerTitle: 'Date and Time(tap to change)' });
 sectionDateTime.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', }));
@@ -294,29 +289,10 @@ if(appointment.id) {
 	sectionDateTime.rows[sectionDateTime.rowCount-1].add(Ti.UI.createLabel({ text: 'Changes Saved!', textAlign: 'center', font: { fontSize: 15, }, }));
 }
 
-var sectionCategories = Ti.UI.createTableViewSection({ headerTitle: '*Categories(list using commas)' });
-sectionCategories.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
-sectionCategories.add(Ti.UI.createTableViewRow({ height: 90, selectedBackgroundColor: 'white' }));
-sectionCategories.rows[0].add(Ti.UI.createLabel({
-								left: 5,
-								width: '90%',  
-								text: "Please list the categories that you feel this appointment applies to. For example, "+
-										"if it is about a health issue, please enter heath. If it is a behavioral issue, "+
-										"please enter behavior. If you feel it is both a health and behavior issue, enter heath, behavior"+
-										" Minimum one category required. ", }));	
-var categories_field = Titanium.UI.createTextArea({ hintText: 'Seperate each category by comma', value: categories_string, width: '100%', top: 5, font: { fontSize: 17 }, height: 70, borderRadius: 10 });
-sectionCategories.rows[1].add(categories_field);
-
-if (appointment.id) {
-	sectionCategories.add(Ti.UI.createTableViewRow({ backgroundColor: '#CCC', }));
-	sectionCategories.rows[sectionCategories.rowCount-1].add(Ti.UI.createLabel({ text: 'Changes Saved!', font: { fontSize: 15, }, }));
-}
-
 var sectionSymptoms = Ti.UI.createTableViewSection({ headerTitle: '*Diagnosis/Symptoms' });
 sectionSymptoms.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
 sectionSymptoms.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
-sectionSymptoms.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
-sectionSymptoms.add(Ti.UI.createTableViewRow({ height: 90, selectedBackgroundColor: 'white' }));
+sectionSymptoms.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', hasChild: true, }));
 sectionSymptoms.rows[0].add(Ti.UI.createLabel({
 								left: 5,
 								width: '90%',  
@@ -325,15 +301,11 @@ var diagnosis_title = Titanium.UI.createLabel({ text: 'Diagnosis', left: 15, fon
 var diagnosis = Titanium.UI.createTextField({ hintText: 'Enter here', value: appointment.diagnosis, width: '50%', left: '50%' });
 sectionSymptoms.rows[1].add(diagnosis_title);
 sectionSymptoms.rows[1].add(diagnosis);
-sectionSymptoms.rows[2].add(Ti.UI.createLabel({
-								left: 5,
-								width: '90%',  
-								text: "Please list the symptoms(separated by commas) that the patient is suffering from. For example, "+
-										"you can list depression, panic attacks. Minimum one symptom required.", }));
-
-var symptoms_field = Titanium.UI.createTextArea({ hintText: 'Seperate each symptom by comma', value: symptoms_string, width: '100%', top: 5, font: { fontSize: 17 }, height: 70, borderRadius: 10 });
-sectionSymptoms.rows[3].add(symptoms_field);
-
+if(appointment.symptoms.length == 0) var symptoms_message = "No symptom listed";
+else if(appointment.symptoms.length == 1) var symptoms_message = appointment.symptoms.length+" symptom listed";
+else var symptoms_message = appointment.symptoms.length+" symptoms listed";
+var symptoms_title = Titanium.UI.createLabel({ text: symptoms_message, left: 15, width: '100%', font: { fontWeight: 'bold', fontSize: 18, }, });
+sectionSymptoms.rows[2].add(symptoms_title);
 if(appointment.id) {
 	sectionSymptoms.add(Ti.UI.createTableViewRow({ backgroundColor: '#CCC', }));
 	sectionSymptoms.rows[sectionSymptoms.rowCount-1].add(Ti.UI.createLabel({ text: 'Changes Saved!', textAlign: 'center', font: { fontSize: 15, }, }));
@@ -388,14 +360,14 @@ if(appointment.id && !isValidDateTime(appointment.date+' '+appointment.time) && 
 //If its being filled out for the first time, ie: appointment.id does not exist, do not show status
 if(appointment.id) {
 	if(appointment.status == 'Completed') {
-		table.data = [sectionStatus, sectionDiagnosis, sectionPrescription, sectionAdditionalNotes, sectionDateTime, sectionCategories, sectionSymptoms, sectionDetails];	
+		table.data = [sectionStatus, sectionDiagnosis, sectionPrescription, sectionAdditionalNotes, sectionDateTime, sectionSymptoms, sectionDetails];	
 	}
 	else {
-		table.data = [sectionStatus, sectionDateTime, sectionCategories, sectionSymptoms, sectionDetails];	
+		table.data = [sectionStatus, sectionDateTime, sectionSymptoms, sectionDetails];	
 	}
 }
 else {
-	table.data = [sectionDateTime, sectionCategories, sectionSymptoms, sectionDetails];
+	table.data = [sectionDateTime, sectionSymptoms, sectionDetails];
 }
 
 window.add(table);
@@ -418,8 +390,30 @@ function beforeSaving()
 	
 	if(appointment.id == null) {
 		var entry_id = '"'+appointment.entry_id+'"';
+		var entry_cloud_id = getEntryLocal(appointment.entry_id)[0].cloud_id; 
 		appointment.id = insertAppointmentLocal(entry_id, appointment.date, appointment.time);
-		createObjectACS('appointments', { id: appointment.id, entry_id: appointment.entry_id, });
+		createObjectACS('appointments', { id: appointment.id, 
+										entry_id:  entry_cloud_id, 
+										diagnosis: diagnosis.value,
+										final_diagnosis: final_diagnosis.value,
+										status: status.text,
+										date: appointment.date,
+										time: appointment.time, 
+										duration: appointment.duration,
+										repeat: repeat.text,
+										alert: alert_text.text,
+										symptoms: (symptoms_field.value.replace(".",",")).split(','),
+										additional_notes: additionalNotes_field.value,
+										doctor: {
+											name: name.value,
+											location: location.value,
+											street: street.value,
+											city: city.value,
+											state: state.value,
+											zip: zip.value,
+											country: country.value,
+											}
+									});
 		return true;
 	}
 	
@@ -438,7 +432,7 @@ function saveStatus()
 
 sectionStatus.addEventListener('click', function(e) {
 	if(e.row.backgroundColor == 'blue') {
-		saveStatus;
+		saveStatus();
 		return;
 	}
 	
@@ -464,10 +458,10 @@ sectionStatus.addEventListener('click', function(e) {
 		if(modalPicker.result) {
 			//The diagnosis section must only show if the appointment has been completed
 			if(modalPicker.result === 'Completed' && status.text != 'Completed') {
-				table.data = [sectionStatus, sectionDiagnosis, sectionPrescription, sectionAdditionalNotes, sectionDateTime, sectionCategories, sectionSymptoms, sectionDetails];
+				table.data = [sectionStatus, sectionDiagnosis, sectionPrescription, sectionAdditionalNotes, sectionDateTime, sectionSymptoms, sectionDetails];
 			}
 			if(modalPicker.result != 'Completed') {
-				table.data = [sectionStatus, sectionDateTime, sectionCategories, sectionSymptoms, sectionDetails];
+				table.data = [sectionStatus, sectionDateTime, sectionSymptoms, sectionDetails];
 			} 
 			status.text = modalPicker.result;
 			sectionStatus.rows[0].backgroundColor = 'white';
@@ -534,18 +528,12 @@ sectionPrescription.addEventListener('click', function() {
 	});
 });
 
-additionalNotes_field.addEventListener('blur', function() {
-	if(additionalNotes_field.value.length > 0 && sectionAdditionalNotes.rows[sectionAdditionalNotes.rowCount-1].backgroundColor == '#CCC') {
-		sectionAdditionalNotes.rows[sectionAdditionalNotes.rowCount-1].backgroundColor = 'blue';
-		sectionAdditionalNotes.rows[sectionAdditionalNotes.rowCount-1].children[0].text = 'Save Changes';
-	}
-});
 
 function saveAdditionalNotes()
 {
 	if(!beforeSaving()) return;
 	
-	updateAppointmentLocal(appointment.id, 'additional_notes', additionalNotes_field.value);
+	updateAppointmentLocal(appointment.id, 'additional_notes', additional_notes.text);
 
 	if(sectionAdditionalNotes.rows[sectionAdditionalNotes.rowCount-1].backgroundColor == 'blue') {
 		sectionAdditionalNotes.rows[sectionAdditionalNotes.rowCount-1].backgroundColor = '#CCC';
@@ -555,6 +543,34 @@ function saveAdditionalNotes()
 
 sectionAdditionalNotes.addEventListener('click', function(e) {
 	if(e.row.backgroundColor == 'blue') saveAdditionalNotes();
+});
+
+additional_notes.addEventListener('click', function() {
+	var notes_page = require('ui/common/helpers/textarea');
+	if(additional_notes.text === "No additional notes") {
+		var additional_notes_text = '';
+	}
+	else {
+		additional_notes_text = additional_notes.text;
+	}
+	notes_page = new notes_page('Additional Notes', "Make any additional notes regarding the outcome of this appointment", 
+									additional_notes_text);
+	var children = navGroupWindow.getChildren();
+	children[0].open(notes_page);
+													
+	notes_page.addEventListener('close', function() {
+		if(!notes_page.result) {
+			additional_notes.text = "No additional notes";
+		}
+		else {
+			additional_notes.text = notes_page.result;
+		}
+	});
+	
+	if(sectionAdditionalNotes.rows[sectionAdditionalNotes.rowCount-1].backgroundColor == '#CCC') {
+		sectionAdditionalNotes.rows[sectionAdditionalNotes.rowCount-1].backgroundColor = 'blue';
+		sectionAdditionalNotes.rows[sectionAdditionalNotes.rowCount-1].children[0].text = 'Save Changes';
+	}
 });
 
 function validateDateTime()
@@ -572,7 +588,8 @@ function validateDateTime()
 
 function saveDateTime()
 {
-	if(!validateDateTime() || !beforeSaving()) return;
+	if(!validateDateTime()) return;
+	if(!beforeSaving()) return;
 		
 	updateAppointmentLocal(appointment.id, 'date', appointment.date);
 	updateAppointmentLocal(appointment.id, 'time', appointment.time);
@@ -580,6 +597,9 @@ function saveDateTime()
 	updateAppointmentLocal(appointment.id, 'duration_minutes', appointment.duration.minutes);
 	updateAppointmentLocal(appointment.id, 'repeat', repeat.text);
 	updateAppointmentLocal(appointment.id, 'alert', alert_text.text);
+	
+	Ti.App.fireEvent('eventSaved');
+	
 	if(sectionDateTime.rows[sectionDateTime.rowCount-1].backgroundColor == 'blue') { 
 		sectionDateTime.rows[sectionDateTime.rowCount-1].backgroundColor = '#CCC';
 		sectionDateTime.rows[sectionDateTime.rowCount-1].children[0].text = 'Changes Saved!';
@@ -652,8 +672,8 @@ duration.addEventListener('click', function() {
 	var picker_closed = function() {
 		if(modalPicker.result) {
 			var milliseconds = modalPicker.result
-			appointment.duration.minutes = millisecondsToHoursMinutes(milliseconds).minutes;					
-			appointment.duration.hours = millisecondsToHoursMinutes(milliseconds).hours;
+			appointment.duration.minutes = millisecondsToHoursMinutesSeconds(milliseconds).minutes;					
+			appointment.duration.hours = millisecondsToHoursMinutesSeconds(milliseconds).hours;
 			var string = (appointment.duration.hours > 0)?appointment.duration.hours+' hours ':'';
 			string += (appointment.duration.minutes > 1)?appointment.duration.minutes+' minutes':'';
 			if(string.length == 0) { string = 'No duration specified'; }
@@ -677,12 +697,11 @@ duration.addEventListener('click', function() {
 
 repeat.addEventListener('click', function() {
 	var data = [];
-	data[0] = 'Once only';
-	data[1] = 'Every Day';
-	data[2] = 'Every Week';
-	data[3] = 'Every 2 Weeks';
-	data[4] = 'Every Month';
-	data[5] = 'Every Year';
+	data[0] = 'once only';
+	data[1] = 'every day';
+	data[2] = 'every week';
+	data[3] = 'every month';
+	data[4] = 'every year';
 	
 	var modalPicker = require('ui/common/helpers/modalPicker');
 	modalPicker = new modalPicker(null,data,repeat.text); 
@@ -719,12 +738,12 @@ repeat.addEventListener('click', function() {
 
 alert_text.addEventListener('click', function() {
 	var data = [];
-	data[0] = '15 Minutes Before';
-	data[1] = '30 Minutes Before';
-	data[2] = '1 Hour Before';
-	data[3] = '2 Hours Before';
-	data[4] = '1 Day Before';
-	data[5] = 'No alert';
+	data[0] = '15 minutes before';
+	data[1] = '30 minutes before';
+	data[2] = '1 hour before';
+	data[3] = '2 hours before';
+	data[4] = '1 day before';
+	data[5] = 'no alert';
 	
 	var modalPicker = require('ui/common/helpers/modalPicker');
 	modalPicker = new modalPicker(null,data,alert.text); 
@@ -759,60 +778,21 @@ alert_text.addEventListener('click', function() {
 		if(Titanium.Platform.osname == 'ipad') modalPicker.addEventListener('hide', picker_closed);
 });
 
-categories_field.addEventListener('blur', function() {
-	if(categories_field.value.length > 0 && sectionCategories.rows[sectionCategories.rowCount-1].backgroundColor == '#CCC') {
-		sectionCategories.rows[sectionCategories.rowCount-1].backgroundColor = 'blue';
-		sectionCategories.rows[sectionCategories.rowCount-1].children[0].text = 'Save Changes';
-	}
-});
 
 function validateCategories()
 {
-	if(categories_field.value == null || categories_field.value == '') {
-		alert('You must list at least one category');
-		return false;
-	}
+
 	return true;
 }
 
 function saveCategories() 
 {
-	if(!validateCategories() || !beforeSaving()) return;	
-		
-		deleteCategoriesForAppointmentLocal(appointment.id);
-			appointment.categories.splice(0, appointment.categories.length);
-			
-			if(categories_field.value != null) {
-				if(categories_field.value.length > 1) {
-					var final_categories = categories_field.value.split(',');
-					for(var i=0;i < final_categories.length;i++) {
-						if(final_categories[i].length < 2) continue;
-						final_categories[i] = removeWhiteSpace(final_categories[i]);
-						insertCategoryForAppointmentLocal(appointment.id,final_categories[i]);
-						appointment.categories.push(final_categories[i]);
-					}
-				}
-			}
-		
-		if(sectionCategories.rows[sectionCategories.rowCount-1].backgroundColor == 'blue') { 
-			sectionCategories.rows[sectionCategories.rowCount-1].backgroundColor = '#CCC';
-			sectionCategories.rows[sectionCategories.rowCount-1].children[0].text = 'Changes Saved!';
-		}
+	
 }
 
-sectionCategories.addEventListener('click', function(e) {
-	if(e.row.backgroundColor == 'blue') saveCategories();
-});
 
 diagnosis.addEventListener('blur', function() {
 	if(diagnosis.value.length > 0 && sectionSymptoms.rows[sectionSymptoms.rowCount-1].backgroundColor == '#CCC') {
-		sectionSymptoms.rows[sectionSymptoms.rowCount-1].backgroundColor = 'blue';
-		sectionSymptoms.rows[sectionSymptoms.rowCount-1].children[0].text = 'Save Changes';
-	}
-})
-
-symptoms_field.addEventListener('blur', function() {
-	if(symptoms_field.value.length > 0 && sectionSymptoms.rows[sectionSymptoms.rowCount-1].backgroundColor == '#CCC') {
 		sectionSymptoms.rows[sectionSymptoms.rowCount-1].backgroundColor = 'blue';
 		sectionSymptoms.rows[sectionSymptoms.rowCount-1].children[0].text = 'Save Changes';
 	}
@@ -820,7 +800,7 @@ symptoms_field.addEventListener('blur', function() {
 
 function validateSymptoms()
 {
-	if(symptoms_field.value == null || symptoms_field.value == '') {
+	if(appointment.symptoms.length < 1) {
 		alert('You must list at least one symptom');
 		return false;
 	}
@@ -829,26 +809,19 @@ function validateSymptoms()
 
 function saveSymptoms()
 {
-	if(!validateSymptoms() || !beforeSaving()) return;
-		
+	if(!validateSymptoms()) return;
+	if(!beforeSaving()) return;	
 		
 		//As diagnosis belongs in the symptoms section, save it too
 		updateAppointmentLocal(appointment.id, 'diagnosis', diagnosis.value);
 		
 		deleteSymptomsForAppointmentLocal(appointment.id);
-			appointment.symptoms.splice(0, appointment.symptoms.length);
-			
-			if(symptoms_field.value != null) {
-				if(symptoms_field.value.length > 1) {
-					var final_symptoms = symptoms_field.value.split(',');
-					for(var i=0;i < final_symptoms.length;i++) {
-						if(final_symptoms[i].length < 2) continue;
-						final_symptoms[i] = removeWhiteSpace(final_symptoms[i]);
-						insertSymptomForAppointmentLocal(appointment.id,final_symptoms[i]);
-						appointment.symptoms.push(final_symptoms[i]);
-					}
-				}
-			}
+			//appointment.symptoms.splice(0, appointment.symptoms.length);
+		
+		for(var i=0; i < appointment.symptoms.length; i++) {
+			appointment.symptoms[i] = removeWhiteSpace(appointment.symptoms[i]);
+			appointment.symptoms[i] = insertSymptomForAppointmentLocal(appointment.id, appointment.symptoms[i]);
+		}
 		
 		if(sectionSymptoms.rows[sectionSymptoms.rowCount-1].backgroundColor == 'blue') { 
 			sectionSymptoms.rows[sectionSymptoms.rowCount-1].backgroundColor = '#CCC';
@@ -860,6 +833,23 @@ sectionSymptoms.addEventListener('click', function(e) {
 	if(e.row.backgroundColor == 'blue') saveSymptoms();
 });
 
+symptoms_title.addEventListener('click', function() {
+	var symptoms_page = require('ui/common/helpers/items');
+	symptoms_page = new symptoms_page(appointment.symptoms);
+	var children = navGroupWindow.getChildren();
+	children[0].open(symptoms_page);
+	
+	symptoms_page.addEventListener('close', function() {
+		appointment.symptoms = symptoms_page.result;
+		if(appointment.symptoms.length == 0) symptoms_title.text = "No symptoms listed"; 
+		else if(appointment.symptoms.length == 1) symptoms_title.text = appointment.symptoms.length+" symptom listed";
+		else if(appointment.symptoms.length > 1) symptoms_title.text = appointment.symptoms.length+ " symptoms listed";
+		if(sectionDetails.rows[sectionDetails.rowCount-1].backgroundColor == '#CCC') {
+			sectionDetails.rows[sectionDetails.rowCount-1].backgroundColor = 'blue';
+			sectionDetails.rows[sectionDetails.rowCount-1].children[0].text = "Save Changes";
+		} 
+	});
+});
 
 var details_button = function() {
 	if(sectionDetails.rows[sectionDetails.rowCount-1].backgroundColor == '#CCC') { 
@@ -878,7 +868,7 @@ country.addEventListener('blur', details_button);
 
 function validateDetails()
 {
-	var onlyLetters = /^[a-zA-Z]/.test(name.value.replace(/\s/g, ''));
+	var onlyLetters = containsOnlyLetters(name.value);
 	if(name.value.length > 1 && onlyLetters) { return true; }
 		else { 
 			if(name.value.length < 1) {
@@ -894,7 +884,8 @@ function validateDetails()
 
 function saveDetails() 
 {	
-	if(!validateDetails() || !beforeSaving()) return;
+	if(!validateDetails()) return;
+	if(!beforeSaving()) return;
 		
 		if(0 == updateDoctorForAppointmentLocal(appointment.id,name.value,location.value,street.value,city.value,state.value,zip.value,country.value)) { 
 			insertDoctorForAppointmentLocal(appointment.id,name.value,location.value,street.value,city.value,state.value,zip.value,country.value); 

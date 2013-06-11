@@ -27,33 +27,15 @@ var treatment = {
 		frequency: input.treatment.frequency?input.treatment.frequency:0,
 		interval: input.treatment.interval?input.treatment.interval:'every day',
 		alert: input.treatment.alert?input.treatment.alert:'Time of event',
-		times: input.treatment.times?input.treatments.times:[],
-		localNotifications: input.treatment.local_notifications?input.treatment.local_notifications:[],
+		times: input.treatment.times?input.treatment.times:[],
+		localNotifications: input.treatment.local_notifications?input.treatment.local_notifications:0,
 		categories: input.treatment.categories?input.treatment.categories:[],
 		symptoms: input.treatment.symptoms?input.treatment.symptoms:[],
 		sideEffects: input.treatment.sideEffects?input.treatment.sideEffects:[],
-		additionalNotes: input.treatment.additional_notes?input.treatment.additional_notes:null,
+		additional_notes: input.treatment.additional_notes?input.treatment.additional_notes:'No additional notes',
 		status: input.treatment.status?input.treatment.status:'Scheduled',
 		successful: input.treatment.successful?input.treatment.successful:'Yes/No?',
 		facebook_id: input.treatment.facebook_id?input.treatment.facebook_id:null,
-	}
-	
-	var categories_string='';
-	for(var i=0;i < treatment.categories.length; i++) {
-		categories_string += treatment.categories[i];
-		if(i != treatment.categories.length -1) categories_string += ', ';
-	}
-	
-	var symptoms_string='';
-	for(var i=0;i < treatment.symptoms.length; i++) {
-		symptoms_string += treatment.symptoms[i];
-		if(i != treatment.symptoms.length -1) symptoms_string += ', ';
-	}
-	
-	var sideEffects_string='';
-	for(var i=0;i < treatment.sideEffects.length; i++) {
-		sideEffects_string += treatment.sideEffects[i];
-		if(i != treatment.sideEffects.length -1) sideEffects_string += ', ';
 	}
 	
 	addRemoveTimes(treatment.frequency - treatment.times.length); 
@@ -99,6 +81,8 @@ cancel_btn.addEventListener('click', function() {
 
   			 switch (g.index) {
      		 case 0:
+     		 	Ti.App.fireEvent('eventSaved'); //This is to delete all related local notifications;
+     		 	
      		  	treatment.cloud_id = treatment.cloud_id?treatment.cloud_id:getTreatmentLocal(treatment.id)[0].cloud_id;
 				deleteTreatmentLocal(treatment.id);			
 				deleteObjectACS('treatments', treatment.cloud_id);
@@ -250,28 +234,20 @@ var status_title = Titanium.UI.createLabel({ text: 'Status', left: 15, font: { f
 var status = Ti.UI.createLabel({ left: '40%', width: 150, text: treatment.status, font: { fontWeight: 'bold', fontSize: 20, }, });
 sectionStatus.rows[0].add(status_title);
 sectionStatus.rows[0].add(status);
-sectionStatus.rows[1].add(Ti.UI.createLabel({ text: 'Changes Saved!', textAlign: 'center', font: { fontSize: 15, }, width: '80%', }));
+sectionStatus.rows[1].add(Ti.UI.createLabel({ text: 'No Change Made', textAlign: 'center', font: { fontSize: 15, }, width: '80%', }));
 
 var sectionAdditionalNotes = Ti.UI.createTableViewSection({ headerTitle: 'Additional Notes', });
-sectionAdditionalNotes.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
-sectionAdditionalNotes.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
-sectionAdditionalNotes.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
-sectionAdditionalNotes.add(Ti.UI.createTableViewRow({ height: 135, selectedBackgroundColor: 'white' }));
-sectionAdditionalNotes.add(Ti.UI.createTableViewRow({ backgroundColor: '#CCC' }));
-var successful_title = Titanium.UI.createLabel({ text: "Was it successful? If the patient was successfully cured "+
-												"of the symptoms listed with no unknown side effects, select Yes, otherwise "+
-												"select No.", left: 15, font: { fontSize: 18, }, });
-var successful = Ti.UI.createLabel({ left: 15, width: '100%', text: treatment.successful, bubbleParent: false, font: { fontWeight: 'bold', fontSize: 20, }, });
-sectionAdditionalNotes.rows[0].add(successful_title);
-sectionAdditionalNotes.rows[1].add(successful);
-sectionAdditionalNotes.rows[2].add(Ti.UI.createLabel({ text: 'Make additional notes about the outcome of the treatment, such as undocumented side-effects', left: 15, }));
-var additionalNotes_field = Titanium.UI.createTextArea({ hintText: 'Additional notes', bubbleParent: false, value: treatment.additionalNotes, width: '100%', top: 5, font: { fontSize: 17 }, height: 115, borderRadius: 10 });
-sectionAdditionalNotes.rows[3].add(additionalNotes_field);
-sectionAdditionalNotes.rows[4].add(Ti.UI.createLabel({ text: 'Changes Saved!', textAlign: 'center', font: { fontSize: 15, }, width: '80%', }));
+sectionAdditionalNotes.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', height: 90, hasChild: true, }));
+var additional_notes = Ti.UI.createLabel({ left: 15, width: '90%', text: treatment.additional_notes, font: { fontSize: 15, }, });
+sectionAdditionalNotes.rows[0].add(additional_notes);
+if(treatment.id) { 
+	sectionAdditionalNotes.add(Ti.UI.createTableViewRow({ backgroundColor: '#CCC', }));
+	sectionAdditionalNotes.rows[sectionAdditionalNotes.rowCount-1].add(Ti.UI.createLabel({ text: 'No Change Made', textAlign: 'center', font: { fontSize: 15, }, width: '80%', }));
+}
 
 var sectionPatient = Ti.UI.createTableViewSection({ headerTitle: 'Patient (required)', });
-sectionPatient.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'black', }));
-var patient_title = Titanium.UI.createLabel({ text: '*Patient', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
+sectionPatient.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', }));
+var patient_title = Titanium.UI.createLabel({ text: '*Individual', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
 var child = getChildLocal(Titanium.App.Properties.getString('child'));
 child = child[0];
 var patient = Titanium.UI.createTextField({ hintText: 'Patient full name', bubbleParent: false, value: child.first_name+' '+child.last_name, width: '55%', left: '45%' });
@@ -279,7 +255,7 @@ sectionPatient.rows[0].add(patient_title);
 sectionPatient.rows[0].add(patient);
 if(treatment.id) {
 	sectionPatient.add(Ti.UI.createTableViewRow({ backgroundColor: '#CCC', }));
-	sectionPatient.rows[sectionPatient.rowCount-1].add(Ti.UI.createLabel({ text: 'Changes Saved!', textAlign: 'center', font: { fontSize: 15, }, }));
+	sectionPatient.rows[sectionPatient.rowCount-1].add(Ti.UI.createLabel({ text: 'No Change Made', textAlign: 'center', font: { fontSize: 15, }, }));
 }
 
 var sectionDetails = Ti.UI.createTableViewSection({ headerTitle: 'Details(* = required)' });
@@ -288,13 +264,7 @@ sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }
 sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
 sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
 sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
-sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
-sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white',}));
-sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white',}));
-var startDate_title = Titanium.UI.createLabel({ text: '*Start date', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
-var start_date = Titanium.UI.createLabel({ text: treatment.start_date, width: '55%', left: '45%', bubbleParent: false, });
-var endDate_title = Titanium.UI.createLabel({ text: '*End date', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
-var end_date = Titanium.UI.createLabel({ text: treatment.end_date, width: '55%', left: '45%', bubbleParent: false, });
+sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', hasChild: true, }));
 var medication_title = Titanium.UI.createLabel({ text: '*Medication', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
 var medication = Titanium.UI.createTextField({ hintText: 'eg: Panadol', value: treatment.medication, width: '55%', left: '45%', bubbleParent: false, });
 var prescribed_by_description = Titanium.UI.createLabel({ text: 'If this treatment was prescribed by a doctor, enter their name here. Else leave blank', left: 15, font: { fontSize: 15, }, });
@@ -303,34 +273,40 @@ var prescribed_by = Titanium.UI.createTextField({ hintText: "Doctor's name here"
 var diagnosis_description = Titanium.UI.createLabel({ text: 'If this treatment is related to a know diagnosis, please mention it here', left: 15, font: { fontSize: 15, }, });
 var diagnosis_title = Titanium.UI.createLabel({ text: 'Diagnosis', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
 var diagnosis = Titanium.UI.createTextField({ hintText: "Enter diagnosis here", value: treatment.diagnosis, width: '55%', left: '45%', bubbleParent: false, });
-var type_title = Titanium.UI.createLabel({ text: '*Type', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
-var type = Titanium.UI.createLabel({ text: treatment.type, width: '55%', left: '45%', bubbleParent: false, });
-sectionDetails.rows[0].add(startDate_title);
-sectionDetails.rows[0].add(start_date);
-sectionDetails.rows[1].add(endDate_title);
-sectionDetails.rows[1].add(end_date);
-sectionDetails.rows[2].add(medication_title);
-sectionDetails.rows[2].add(medication);
-sectionDetails.rows[3].add(prescribed_by_description);
-sectionDetails.rows[4].add(prescribed_by_title);
-sectionDetails.rows[4].add(prescribed_by);
-sectionDetails.rows[5].add(diagnosis_description);
-sectionDetails.rows[6].add(diagnosis_title);
-sectionDetails.rows[6].add(diagnosis);
-sectionDetails.rows[7].add(type_title);
-sectionDetails.rows[7].add(type);
+if(treatment.symptoms.length == 0) var symptoms_message = "No symptom listed";
+else if(treatment.symptoms.length == 1) var symptoms_message = treatment.symptoms.length+" symptom listed";
+else var symptoms_message = treatment.symptoms.length+" symptoms listed";
+var symptoms_title = Titanium.UI.createLabel({ text: symptoms_message, left: 15, width: '100%', font: { fontWeight: 'bold', fontSize: 18, }, });
+sectionDetails.rows[0].add(medication_title);
+sectionDetails.rows[0].add(medication);
+sectionDetails.rows[1].add(prescribed_by_description);
+sectionDetails.rows[2].add(prescribed_by_title);
+sectionDetails.rows[2].add(prescribed_by);
+sectionDetails.rows[3].add(diagnosis_description);
+sectionDetails.rows[4].add(diagnosis_title);
+sectionDetails.rows[4].add(diagnosis);
+sectionDetails.rows[5].add(symptoms_title)
 if(treatment.id) {
 	sectionDetails.add(Ti.UI.createTableViewRow({ backgroundColor: '#CCC', }));
-	sectionDetails.rows[sectionDetails.rowCount-1].add(Ti.UI.createLabel({ text: 'Changes Saved!', textAlign: 'center', font: { fontSize: 15, }, }));
+	sectionDetails.rows[sectionDetails.rowCount-1].add(Ti.UI.createLabel({ text: 'No Change Made', textAlign: 'center', font: { fontSize: 15, }, }));
 }
 
 var sectionSolidLiquid= Ti.UI.createTableViewSection({ headerTitle: treatment.type+' medication', });
+sectionSolidLiquid.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
+sectionSolidLiquid.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
+sectionSolidLiquid.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
 sectionSolidLiquid.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
 sectionSolidLiquid.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
 sectionSolidLiquid.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', }));
 sectionSolidLiquid.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', }));
 sectionSolidLiquid.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', }));
 sectionSolidLiquid.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', hasChild: true, }));
+var type_title = Titanium.UI.createLabel({ text: '*Type', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
+var type = Titanium.UI.createLabel({ text: treatment.type, width: '55%', left: '45%', bubbleParent: false, });
+var startDate_title = Titanium.UI.createLabel({ text: '*Start date', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
+var start_date = Titanium.UI.createLabel({ text: treatment.start_date, width: '55%', left: '45%', old_start_date: treatment.start_date, bubbleParent: false, });
+var endDate_title = Titanium.UI.createLabel({ text: '*End date', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
+var end_date = Titanium.UI.createLabel({ text: treatment.end_date, width: '55%', left: '45%', old_end_date: treatment.end_date, bubbleParent: false, });
 var dosage_title = Titanium.UI.createLabel({ text: '*Number of pills', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
 var dosage = Titanium.UI.createTextField({ hintText: 'eg: 1.5', value: treatment.dosage, width: '40%', left: '60%', bubbleParent: false, keyboardType: 2, });
 var frequency_title = Titanium.UI.createLabel({ text: '*How Many Times?', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
@@ -338,60 +314,34 @@ var frequency = Titanium.UI.createLabel({ text: treatment.frequency, left: '60%'
 var interval_title = Titanium.UI.createLabel({ text: '*Interval', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
 var interval = Ti.UI.createLabel({ text: treatment.interval, left: '60%', width: '40%', bubbleParent: false, });
 var alert_description = Titanium.UI.createLabel({ text: "You can choose how long before every scheduled medication you would "+
-														"like to be alerted. For example: if you have to take the medication "+
+														"like to be alerted. For example: if you have to give the medication "+
 														"twice a day, and you choose to be alerted 15 minutes before, we will "+
 														"notify you 15 minutes before the two times that you choose below.", left: 15, font: { fontSize: 15, }, });
-var alert_title = Titanium.UI.createLabel({ text: '*Alert', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
-var alert_text = Ti.UI.createLabel({ text: treatment.alert, left: '60%', width: '40%', bubbleParent: false, });
-var alertsPage_title = Titanium.UI.createLabel({ text: 'Times for alerts', left: 15, width: '100%', font: { fontWeight: 'bold', fontSize: 18, }, });
+var alert_title = Titanium.UI.createLabel({ text: '*Alert at', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
+var alert_text = Ti.UI.createLabel({ text: treatment.alert, left: '60%', width: '40%', bubbleParent: false, old_advance: treatment.alert, });
+var alertsPage_title = Titanium.UI.createLabel({ text: '('+treatment.times.length+') Times for alerts', left: 15, width: '100%', font: { fontWeight: 'bold', fontSize: 18, }, old_times: treatment.times, });
 alertsPage_title.color = (treatment.alert == 'Never' || frequency.text == 0)?'#CCC':'black';
-sectionSolidLiquid.rows[0].add(dosage_title);
-sectionSolidLiquid.rows[0].add(dosage);
-sectionSolidLiquid.rows[1].add(frequency_title);
-sectionSolidLiquid.rows[1].add(frequency);
-sectionSolidLiquid.rows[2].add(interval_title);
-sectionSolidLiquid.rows[2].add(interval);
-sectionSolidLiquid.rows[3].add(alert_description);
-sectionSolidLiquid.rows[4].add(alert_title);
-sectionSolidLiquid.rows[4].add(alert_text);
-sectionSolidLiquid.rows[5].add(alertsPage_title);
+sectionSolidLiquid.rows[0].add(type_title);
+sectionSolidLiquid.rows[0].add(type);
+sectionSolidLiquid.rows[1].add(startDate_title);
+sectionSolidLiquid.rows[1].add(start_date);
+sectionSolidLiquid.rows[2].add(endDate_title);
+sectionSolidLiquid.rows[2].add(end_date);
+sectionSolidLiquid.rows[3].add(dosage_title);
+sectionSolidLiquid.rows[3].add(dosage);
+sectionSolidLiquid.rows[4].add(frequency_title);
+sectionSolidLiquid.rows[4].add(frequency);
+sectionSolidLiquid.rows[5].add(interval_title);
+sectionSolidLiquid.rows[5].add(interval);
+sectionSolidLiquid.rows[6].add(alert_description);
+sectionSolidLiquid.rows[7].add(alert_title);
+sectionSolidLiquid.rows[7].add(alert_text);
+sectionSolidLiquid.rows[8].add(alertsPage_title);
 if(treatment.id) {
 	sectionSolidLiquid.add(Ti.UI.createTableViewRow({ backgroundColor: '#CCC', }));
-	sectionSolidLiquid.rows[sectionSolidLiquid.rowCount-1].add(Ti.UI.createLabel({ text: 'Changes Saved!', textAlign: 'center', font: { fontSize: 15, }, }));
+	sectionSolidLiquid.rows[sectionSolidLiquid.rowCount-1].add(Ti.UI.createLabel({ text: 'No Change Made', textAlign: 'center', font: { fontSize: 15, }, }));
 }
 
-var sectionCategories = Ti.UI.createTableViewSection();
-var categories_field = Titanium.UI.createTextArea({ hintText: 'Seperate each category by comma', value: categories_string, width: '100%', top: 5, font: { fontSize: 17 }, height: 70, borderRadius: 10 });
-//if(!treatment.appointment_id) { 
-	sectionCategories.headerTitle = 'Categories(list using commas)';
-	sectionCategories.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
-	sectionCategories.add(Ti.UI.createTableViewRow({ height: 90, selectedBackgroundColor: 'white' }));
-	sectionCategories.rows[0].add(Ti.UI.createLabel({
-									left: 5,
-									width: '90%',  
-									text: "Please list the categories that you feel this treatment applies to. For example, "+
-											"if it is about a health issue, please enter health. If it is a behavioral issue, "+
-											"please enter behavior. If you feel it is both a health and behavior issue, enter heath, behavior"+
-											" Minimum one category required. ", }));	
-	
-	sectionCategories.rows[1].add(categories_field);
-	if(treatment.id) {
-		sectionCategories.add(Ti.UI.createTableViewRow({ backgroundColor: '#CCC', }));
-		sectionCategories.rows[sectionCategories.rowCount-1].add(Ti.UI.createLabel({ text: 'Changes Saved!', textAlign: 'center', font: { fontSize: 15, }, }));
-	}
-//}
-
-var sectionSymptoms = Ti.UI.createTableViewSection({ headerTitle: '*Symptoms(list using commas)' });
-sectionSymptoms.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
-sectionSymptoms.add(Ti.UI.createTableViewRow({ height: 90, selectedBackgroundColor: 'white' }));
-var symptoms_explanation = Ti.UI.createLabel({ text: 'Please list the symptoms this treatment is intended for. Separate each symptom using a comma. You must list at least one.', left: 15, })
-var symptoms_field = Titanium.UI.createTextArea({ hintText: 'Seperate each symptom by comma', value: symptoms_string, width: '100%', top: 5, font: { fontSize: 17 }, height: 70, borderRadius: 10, bubbleParent: false, });
-sectionSymptoms.rows[0].add(symptoms_explanation);
-sectionSymptoms.rows[1].add(symptoms_field);
-if(treatment.id) {
-	sectionSymptoms.add(Ti.UI.createTableViewRow({ backgroundColor: '#CCC', }));
-	sectionSymptoms.rows[sectionSymptoms.rowCount-1].add(Ti.UI.createLabel({ text: 'Changes Saved!', textAlign: 'center', font: { fontSize: 15, }, }));
-}
 /*
 var sectionOutcome = Ti.UI.createTableViewSection();
 sectionOutcome.add(Ti.UI.createTableViewRow({ height: 45, selectedBackgroundColor: 'white' }));
@@ -409,18 +359,6 @@ successful_switcher.addEventListener('change', function() {
 		sectionShare.rows[0].backgroundColor = '#CCC';
 	});
 */
-var sectionSideEffects = Ti.UI.createTableViewSection({ headerTitle: 'Known Side effects(list using commas)' });
-sectionSideEffects.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
-sectionSideEffects.add(Ti.UI.createTableViewRow({ height: 90, selectedBackgroundColor: 'white' }));
-sectionSideEffects.rows[0].add(Ti.UI.createLabel({ text: "List any of the medication's known side effects. Seperate each with a comma.", left: 15, }));
-var sideEffects_field = Titanium.UI.createTextArea({ hintText: 'Seperate each entry by comma', value: sideEffects_string, width: '100%', top: 5, font: { fontSize: 17 }, height: 70, borderRadius: 10, bubbleParent: false, });
-sectionSideEffects.rows[1].add(sideEffects_field);
-if(treatment.id) {
-	sectionSideEffects.add(Ti.UI.createTableViewRow({ backgroundColor: '#CCC', }));
-	sectionSideEffects.rows[sectionSideEffects.rowCount-1].add(Ti.UI.createLabel({ text: 'Changes Saved!', textAlign: 'center', font: { fontSize: 15, }, }));
-}
-
-
 
 var sectionShare = Ti.UI.createTableViewSection();
 	sectionShare.add(Ti.UI.createTableViewRow({ backgroundColor: share_background_color, }));
@@ -437,10 +375,6 @@ var sectionShare = Ti.UI.createTableViewSection();
 		}
 		if(treatment.facebook_id) {
 			alert('This treatment has already been shared on facebook');
-			return;
-		}
-		if(!successful_switcher.value) {
-			alert('You must declare a treatment successful in order to be able to share it on Facebook');
 			return;
 		}
 		
@@ -488,57 +422,30 @@ var sectionShare = Ti.UI.createTableViewSection();
 		});
 	});
 
-var sectionDelete = Ti.UI.createTableViewSection();
-sectionDelete.add(Ti.UI.createTableViewRow({ backgroundColor: treatment.id?'red':'#CCC', 
-											}));
-sectionDelete.rows[0].add(Ti.UI.createLabel({ text: 'Delete Treatment', color: 'white', font: { fontWeight: 'bold', },  }));
-
-sectionDelete.addEventListener('click', function() {
-	if(!treatment.id) {
-		alert('This treatment has not been saved. If you wish to delete it, simply press cancel at the top left corner');
-		return;
-	}
-	var confirm = Titanium.UI.createAlertDialog({ title: 'Are you sure?', 
-								message: 'This cannot be undone', 
-								buttonNames: ['Yes','No'], cancel: 1 });
-								
-	confirm.addEventListener('click', function(g) { 
-   			//Clicked cancel, first check is for iphone, second for android
-   			if (g.cancel === g.index || g.cancel === true) { return; }
-
-
-  			 switch (g.index) {
-     		 case 0:
-     		  	treatment.cloud_id = treatment.cloud_id?treatment.cloud_id:getTreatmentLocal(treatment.id)[0].cloud_id;
-				deleteTreatmentLocal(treatment.id);			
-				deleteObjectACS('treatments', treatment.cloud_id);
-				window.result = -1;
-				navGroupWindow.result = -1;
-				//input.navGroupWindow.getChildren()[0].close(window);
-      			navGroupWindow.close();
-      			break;
-
-      		 case 1:       			
-      		 default: break;
-  			}
-		});
-		confirm.show();
-});
-
 //Rules for what to display as the status
 if(treatment.id) {
 	if(!isValidDate(treatment.end_date) && status.text === 'Scheduled') {
 		status.text = "Complete";
 	}
 	if(treatment.status == "Completed") {
-		table.data = [sectionStatus, sectionAdditionalNotes, sectionCategories, sectionPatient, sectionDetails, sectionSolidLiquid, sectionSymptoms, sectionSideEffects];	
+		if(Titanium.App.Properties.getString('child')) {
+			table.data = [sectionStatus, sectionAdditionalNotes, sectionDetails, sectionSolidLiquid];
+		}
+		else { 
+			table.data = [sectionStatus, sectionAdditionalNotes, sectionPatient, sectionDetails, sectionSolidLiquid];	
+		}
 	}
 	else {
-		table.data = [sectionStatus, sectionCategories, sectionPatient, sectionDetails, sectionSolidLiquid,sectionSymptoms, sectionSideEffects];	
+		if(Titanium.App.Properties.getString('child')) {
+			table.data = [sectionStatus, sectionDetails, sectionSolidLiquid];
+		}
+		else { 
+			table.data = [sectionStatus, sectionPatient, sectionDetails, sectionSolidLiquid];
+		}	
 	}
 }
 else {
-	table.data = [sectionCategories, sectionPatient, sectionDetails, sectionSolidLiquid, sectionSymptoms, sectionSideEffects];
+	table.data = [sectionPatient, sectionDetails, sectionSolidLiquid];
 }
 window.add(table);
 
@@ -559,12 +466,6 @@ function beforeSaving()
 		return false;
 	}
 	
-	if(status.text == 'Completed' && successful.text == 'Yes/No?') {
-		alert('Please declare whether the treatment was successful or unsuccessful');
-		table.scrollToIndex(2);
-		return false;
-	}
-	
 	if(treatment.id == null) {
 		var appointment_id=null;
 		var appointment_cloud_id=null;
@@ -574,7 +475,7 @@ function beforeSaving()
 		}
 			var entry_id = '"'+treatment.entry_id+'"'; 
 			treatment.id = insertTreatmentLocal(entry_id,appointment_id,start_date.text,end_date.text,medication.value,
-											type.text, dosage.value,frequency.text, interval.text);
+											type.text, dosage.value,frequency.text, interval.text, alert_text.text);
 		
 		var entry_cloud_id = getEntryLocal(treatment.entry_id)[0].cloud_id;
 		createObjectACS('treatments', { id: treatment.id,
@@ -589,12 +490,11 @@ function beforeSaving()
 										dosage: dosage.value,
 										frequency: frequency.text,
 										interval: interval.text,
-										categories: (categories_field.value.replace(".",",")).split(','),
-										symptoms: (symptoms_field.value.replace(".",",")).split(','),
-										sideEffects: (sideEffects_field.value.replace(".",",")).split(','),
-										additional_notes: additionalNotes_field.value,
+										alert: alert_text.text,
+										symptoms: treatment.symptoms,
+										additional_notes: additional_notes.text,
 										status: status.text,
-										facebook_id: treatment.facebook_id,
+										//facebook_id: treatment.facebook_id,
 									});
 									
 	}
@@ -625,7 +525,7 @@ sectionStatus.addEventListener('click', function(e) {
 	data[2] = 'Cancelled';
 	
 	var modalPicker = require('ui/common/helpers/modalPicker');
-	modalPicker = new modalPicker(null,data,sectionStatus.rows[0].title); 
+	modalPicker = new modalPicker(null,data,status.text); 
 	
 	if(window.leftNavButton != null) { 
 		window.leftNavButton.setTouchEnabled(false);
@@ -668,10 +568,7 @@ function saveAdditionalNotes()
 {
 	if(!beforeSaving()) return;
 	
-	updateTreatmentLocal(treatment.id, 'successful', successful.text);
-	updateTreatmentLocal(treatment.id, 'additional_notes', additionalNotes_field.value);
-	treatment.successful = successful.text;
-	treatment.additionalNotes = additionalNotes_field.value;
+	updateTreatmentLocal(treatment.id, 'additional_notes', additional_notes.text);
 	
 	if(sectionAdditionalNotes.rows[sectionAdditionalNotes.rowCount-1].backgroundColor == 'blue') {
 		sectionAdditionalNotes.rows[sectionAdditionalNotes.rowCount-1].backgroundColor = '#CCC';
@@ -683,49 +580,30 @@ sectionAdditionalNotes.addEventListener('click', function(e) {
 	if(e.row.backgroundColor == 'blue') saveAdditionalNotes();
 });
 
-successful.addEventListener('click', function() {
-	var data = [];
-	data[0] = 'Yes';
-	data[1] = 'No';
-	
-	var modalPicker = require('ui/common/helpers/modalPicker');
-	modalPicker = new modalPicker(null,data,successful.text); 
-	
-	if(window.leftNavButton != null) { 
-		window.leftNavButton.setTouchEnabled(false);
+
+additional_notes.addEventListener('click', function() {
+	var notes_page = require('ui/common/helpers/textarea');
+	if(additional_notes.text === "No additional notes") {
+		var additional_notes_text = '';
 	}
-	window.rightNavButton.setTouchEnabled(false); 
-	window.setTouchEnabled(false);
-	table.scrollable = false;
-	if(Titanium.Platform.osname == 'iphone') modalPicker.open();
-	if(Titanium.Platform.osname == 'ipad') modalPicker.show({ view: successful, });
-	
-	
-	var picker_closed = function() {
-		if(modalPicker.result) {
-			if(modalPicker.result != successful.text) {
-				if(sectionAdditionalNotes.rows[sectionAdditionalNotes.rowCount-1].backgroundColor == '#CCC') {
-					sectionAdditionalNotes.rows[sectionAdditionalNotes.rowCount-1].backgroundColor = 'blue';
-					sectionAdditionalNotes.rows[sectionAdditionalNotes.rowCount-1].children[0].text = 'Changes Saved!';
-				}
-			}
-			successful.text = modalPicker.result;
+	else {
+		additional_notes_text = additional_notes.text;
+	}
+	notes_page = new notes_page('Additional Notes', "Make any additional notes regarding the outcome of this treatment "+
+													"such as unexpected side effects.", additional_notes_text);
+	var children = navGroupWindow.getChildren();
+	children[0].open(notes_page);
+													
+	notes_page.addEventListener('close', function() {
+		if(!notes_page.result) {
+			additional_notes.text = "No additional notes";
 		}
-		window.setTouchEnabled(true);
-		if(window.leftNavButton != null) { 
-			window.leftNavButton.setTouchEnabled(true);
+		else {
+			additional_notes.text = notes_page.result;
 		}
-		window.rightNavButton.setTouchEnabled(true); 
-		table.scrollable = true;
-		};
-		
-		if(Titanium.Platform.osname == 'iphone') modalPicker.addEventListener('close', picker_closed);
-		if(Titanium.Platform.osname == 'ipad') modalPicker.addEventListener('hide', picker_closed);
-});
-
-
-additionalNotes_field.addEventListener('blur', function() {
-	if(additionalNotes_field.value.length > 0 && sectionAdditionalNotes.rows[sectionAdditionalNotes.rowCount-1].backgroundColor == '#CCC') {
+	});
+	
+	if(sectionAdditionalNotes.rows[sectionAdditionalNotes.rowCount-1].backgroundColor == '#CCC') {
 		sectionAdditionalNotes.rows[sectionAdditionalNotes.rowCount-1].backgroundColor = 'blue';
 		sectionAdditionalNotes.rows[sectionAdditionalNotes.rowCount-1].children[0].text = 'Save Changes';
 	}
@@ -733,18 +611,6 @@ additionalNotes_field.addEventListener('blur', function() {
 
 function validateDetails()
 {
-	if(!isValidDate(start_date.text)) { 
-		alert('Your start date seems to be invalid. Please pick a date in the present or future.');
-		return false; 
-	}
-	else if(!isValidDate(end_date.text)) { 
-		alert('Your end date seems to be invalid. Please pick a date in the present or future');
-		return false;
-	}
-	else if(!isStartBeforeEnd(start_date.text,end_date.text)) { 
-		alert('Your end date seems to be before your start date. Please correct'); 
-		return false;
-	}
 	if(medication.value.length < 1) { 
 		alert('You do not seem to have listed a medication.');
 		return false; 
@@ -758,19 +624,13 @@ function saveDetails()
 	if(!validateDetails()) return;
 	if(!beforeSaving()) return;
 	
-	updateTreatmentLocal(treatment.id, 'start_date', start_date.text);
-	updateTreatmentLocal(treatment.id, 'end_date', end_date.text);
 	updateTreatmentLocal(treatment.id, 'medication', medication.value);
 	updateTreatmentLocal(treatment.id, 'prescribed_by', prescribed_by.value);
 	updateTreatmentLocal(treatment.id, 'diagnosis', diagnosis.value);
-	updateTreatmentLocal(treatment.id, 'type', type.text);
 	
-	treatment.start_date = start_date.text;
-	treatment.end_date = end_date.text;
 	treatment.medication = medication.text;
 	treatment.prescribed_by = prescribed_by.text;
 	treatment.diagnosis = diagnosis.text;
-	treatment.type = type.text;
 	
 	if(sectionDetails.rows[sectionDetails.rowCount-1].backgroundColor == 'blue') {
 		sectionDetails.rows[sectionDetails.rowCount-1].backgroundColor = '#CCC';
@@ -779,7 +639,10 @@ function saveDetails()
 }
 
 sectionDetails.addEventListener('click', function(e) {
-	if(e.row.backgroundColor == 'blue') saveDetails();
+	if(e.row.backgroundColor == 'blue') {
+		saveDetails();
+		saveSymptoms();
+	}
 });
 
 
@@ -806,9 +669,9 @@ if(Titanium.Platform.osname == 'ipad') modalPicker.show({ view: date, });
 		if(modalPicker.result) { 
 			var newDate = modalPicker.result.toDateString();
 			date.text = newDate;
-			if(sectionDetails.rows[sectionDetails.rowCount-1].backgroundColor == '#CCC') {
-				sectionDetails.rows[sectionDetails.rowCount-1].backgroundColor = 'blue';
-				sectionDetails.rows[sectionDetails.rowCount-1].children[0].text = 'Save Changes';
+			if(sectionSolidLiquid.rows[sectionSolidLiquid.rowCount-1].backgroundColor == '#CCC') {
+				sectionSolidLiquid.rows[sectionSolidLiquid.rowCount-1].backgroundColor = 'blue';
+				sectionSolidLiquid.rows[sectionSolidLiquid.rowCount-1].children[0].text = 'Save Changes';
 			}
 		}
 	window.setTouchEnabled(true);
@@ -823,7 +686,23 @@ if(Titanium.Platform.osname == 'ipad') modalPicker.show({ view: date, });
 	if(Titanium.Platform.osname == 'ipad') modalPicker.addEventListener('hide', picker_closed);
 }
 
-
+symptoms_title.addEventListener('click', function() {
+	var symptoms_page = require('ui/common/helpers/items');
+	symptoms_page = new symptoms_page('Symptoms', treatment.symptoms);
+	var children = navGroupWindow.getChildren();
+	children[0].open(symptoms_page);
+	
+	symptoms_page.addEventListener('close', function() {
+		treatment.symptoms = symptoms_page.result;
+		if(treatment.symptoms.length == 0) symptoms_title.text = "No symptoms listed"; 
+		else if(treatment.symptoms.length == 1) symptoms_title.text = treatment.symptoms.length+" symptom listed";
+		else if(treatment.symptoms.length > 1) symptoms_title.text = treatment.symptoms.length+ " symptoms listed";
+		if(sectionDetails.rows[sectionDetails.rowCount-1].backgroundColor == '#CCC') {
+			sectionDetails.rows[sectionDetails.rowCount-1].backgroundColor = 'blue';
+			sectionDetails.rows[sectionDetails.rowCount-1].children[0].text = "Save Changes";
+		} 
+	});
+});
 
 start_date.addEventListener('click', function() {
 	changeDate(start_date);
@@ -900,6 +779,20 @@ type.addEventListener('click', function() {
 
 function validateSolidLiquid()
 {
+	if(!isValidDate(start_date.text)) { 
+		alert('Your start date seems to be invalid. Please pick a date in the present or future.');
+		return false; 
+	}
+	if(!isValidDate(end_date.text)) { 
+		alert('Your end date seems to be invalid. Please pick a date in the present or future');
+		return false;
+	}
+	
+	if(!isStartBeforeEnd(start_date.text,end_date.text)) { 
+		alert('Your end date seems to be before your start date. Please correct'); 
+		return false;
+	}
+	
 	if(dosage.value.length < 1) {
 		if(dosage_title.text === '*Number of pills') alert('You have not entered the number of pills');
 		else alert('You do not seem to have entered the dosage.');
@@ -919,61 +812,117 @@ function validateSolidLiquid()
 	return true;
 }
 
+function deleteAllLocalNotifications()
+{
+	if(alertsPage_title.old_times.length == 0) return;
+	
+	var old_times = alertsPage_title.old_times;
+	var local_start_date = start_date.old_start_date;
+	var local_end_date = end_date.old_end_date;
+	var old_advance = alert_text.old_advance;
+	
+	var days = Math.floor(( Date.parse(local_end_date) - Date.parse(local_start_date) ) / 86400000);
+	if(old_advance === 'Time of event') var advance = 0;
+	else { var advance = old_advance.split(' ')[0]; }
+	
+	var i=0;
+	var d = new Date(local_start_date+' '+old_times[0]);
+	do {
+				d.setDate(d.getDate()+i); 	
+				for(var j=0; j < old_times.length; j++) {
+					//It means the text was alert time is in the hours
+					if(advance > 0 && advance < 5) { 
+						d.setHours(new Date(local_start_date+' '+old_times[j]).getHours()-advance);
+					}
+					else {  
+						d.setMinutes(new Date(local_start_date+' '+old_times[j]).getMinutes()-advance);
+					}
+					var local_notification_id = d.getTime();
+					
+					Ti.App.iOS.cancelLocalNotification(local_notification_id);
+				}
+				i++;
+		} while(i < days);
+}
+
 
 function saveSolidLiquid()
 {
 	if(!validateSolidLiquid()) return;
 	if(!beforeSaving()) return;
 	
-	updateTreatmentLocal(treatment.id, 'dosage', dosage.value);
-	updateTreatmentLocal(treatment.id, 'frequency', frequency.text);
-	updateTreatmentLocal(treatment.id, 'interval', interval.text);
+	//deleteAllLocalNotifications();
 	
-	deleteTimesForTreatmentLocal(treatment.id);
-	
-	var days = Math.floor(( Date.parse(end_date.text) - Date.parse(start_date.text) ) / 86400000);
+/*	var days = Math.floor(( Date.parse(end_date.text) - Date.parse(start_date.text) ) / 86400000);
 	if(alert_text.text === 'Time of event') var advance = 0;
-	else var advance = alert_text.text.split(' ')[0];
+	else { var advance = alert_text.text.split(' ')[0]; }
 	if(type.text == 'Solid') {
-		var alertBody = dosage.text+" pills of "+medication.text+" for "+child.first_name;
+		if(dosage.value == 1) {
+			var alertBody = dosage.value+" pill of "+medication.value+" for "+child.first_name;
+		}
+		else { 
+			var alertBody = dosage.value+" pills of "+medication.value+" for "+child.first_name;
+		}
 	}
 	else {
-		var alertBody = dosage.text+" of "+medication.text+" for "+child.first_name;
+		var alertBody = dosage.value+" of "+medication.value+" for "+child.first_name;
 	}
 	var i=0;
 	var d = new Date(start_date.text+' '+treatment.times[0]);
+
 	
 	if(alert_text.text != 'Never') {	
 		do {
-				treatment.localNotifications[i] = [];
 				d.setDate(d.getDate()+i); 	
 				for(var j=0; j < treatment.times.length; j++) {
-					if(advance < 5) //It means the text was alert time is in the hours
+					//It means the text was alert time is in the hours
+					if(advance > 0 && advance < 5) { 
 						d.setHours(new Date(start_date.text+' '+treatment.times[j]).getHours()-advance);
-					else 
+					}
+					else {  
 						d.setMinutes(new Date(start_date.text+' '+treatment.times[j]).getMinutes()-advance);
-					
+					}
 					var local_notification_id = d.getTime();
-					
-					if(!treatment.localNotifications[i][j]) { 
-						treatment.localNotifications[i][j] = local_notification_id;
-						Ti.App.iOS.scheduleLocalNotification({ 
-							alertBody: alertBody, 
-							alertAction: "view details", 
-							userInfo: {"id": local_notification_id }, 
-							date: new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null),  
-						});
-					}	
+						 
+					Ti.App.iOS.scheduleLocalNotification({ 
+						alertBody: alertBody, 
+						alertAction: "view", 
+						userInfo: {"id": local_notification_id }, 
+						date: new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null),  
+					});		
 				}
 				i++;
 		} while(i < days);
-	}
-
-	Ti.API.info(treatment.localNotifications);
+	} */
+	Ti.App.fireEvent('eventSaved');
 	
+	alertsPage_title.old_times = treatment.times;
+	alert_text.old_advance = alert_text.text;
+	start_date.old_start_date = treatment.start_date;
+	end_date.old_end_date = treatment.end_date;
+	
+	treatment.start_date = start_date.text;
+	treatment.end_date = end_date.text;	
+	treatment.type = type.text;
 	treatment.dosage = dosage.value;
 	treatment.frequency = frequency.text;
 	treatment.interval = interval.text;
+	treatment.alert = alert_text.text;
+	
+	updateTreatmentLocal(treatment.id, 'type', type.text);
+	updateTreatmentLocal(treatment.id, 'start_date', start_date.text);
+	updateTreatmentLocal(treatment.id, 'end_date', end_date.text);
+	updateTreatmentLocal(treatment.id, 'dosage', dosage.value);
+	updateTreatmentLocal(treatment.id, 'frequency', frequency.text);
+	updateTreatmentLocal(treatment.id, 'interval', interval.text);
+	updateTreatmentLocal(treatment.id, 'alert', alert_text.text);
+	
+	
+	deleteTimesForTreatmentLocal(treatment.id);
+	
+	for(var i=0; i < treatment.times.length; i++) {
+		insertTimeForTreatmentLocal(treatment.id, treatment.times[i]);
+	}
 	
 	if(sectionSolidLiquid.rows[sectionSolidLiquid.rowCount-1].backgroundColor == 'blue') {
 		sectionSolidLiquid.rows[sectionSolidLiquid.rowCount-1].backgroundColor = '#CCC';
@@ -1037,7 +986,7 @@ frequency.addEventListener('click', function() {
 					alertsPage_title.color = 'black';
 					addRemoveTimes(modalPicker.result - frequency.text);
 				}
-				
+				alertsPage_title.text = '('+modalPicker.result+') Times for alerts';
 			}
 			frequency.text = modalPicker.result;
 		}
@@ -1163,6 +1112,7 @@ alertsPage_title.addEventListener('click', function() {
 	alerts_page.addEventListener('close', function() {
 		treatment.times = alerts_page.result;
 		frequency.text = treatment.times.length;
+		alertsPage_title.text = '('+treatment.times.length+') Times for alerts';
 		if(treatment.times.length == 0) {
 			alertsPage_title.color = '#CCC';
 		}
@@ -1173,12 +1123,10 @@ alertsPage_title.addEventListener('click', function() {
 	});  
 });
 
+
 function validateCategories()
 {
-	if(categories_field.value == null || categories_field.value == '') {
-		alert('You must list at least one category');
-		return false;
-	}
+	
 	return true;
 }
 
@@ -1188,44 +1136,22 @@ function saveCategories()
 	if(!beforeSaving()) return;
 		
 		deleteCategoriesForTreatmentLocal(treatment.id);
-			treatment.categories.splice(0, treatment.categories.length);
-			
-			if(categories_field.value != null) {
-				if(categories_field.value.length > 1) {
-					categories_field.value.replace(".",",");
-					var final_categories = categories_field.value.split(',');
-					for(var i=0;i < final_categories.length;i++) {
-						if(final_categories[i].length < 2) continue;
-						final_categories[i] = removeWhiteSpace(final_categories[i]);
-						insertCategoryForTreatmentLocal(treatment.id,final_categories[i]);
-						treatment.categories.push(final_categories[i]);
-					}
-				}
-			}
+			//treatment.categories.splice(0, treatment.categories.length);
 		
-		if(sectionCategories.rows[sectionCategories.rowCount-1].backgroundColor == 'blue') { 
-			sectionCategories.rows[sectionCategories.rowCount-1].backgroundColor = '#CCC';
-			sectionCategories.rows[sectionCategories.rowCount-1].children[0].text = 'Changes Saved!';
-		}
+		for(var i=0; i < treatment.categories; i++) {
+			treatment.categories[i] = removeWhiteSpace(treatment.categories[i]);
+			insertCategoryForTreatmentLocal(treatment.id, treatment.categories[i]);
+		}	
+		
+	//	if(sectionCategories.rows[sectionCategories.rowCount-1].backgroundColor == 'blue') { 
+	//		sectionCategories.rows[sectionCategories.rowCount-1].backgroundColor = '#CCC';
+	//		sectionCategories.rows[sectionCategories.rowCount-1].children[0].text = 'Changes Saved!';
+	//	}
 }
-
-
-sectionCategories.addEventListener('click', function(e) {
-	if(e.row.backgroundColor == 'blue') saveCategories();
-})
-
-categories_field.addEventListener('blur', function() {
-	if(categories_field.value.length > 0) {
-		if(sectionCategories.rows[sectionCategories.rowCount-1].backgroundColor == '#CCC') {
-			sectionCategories.rows[sectionCategories.rowCount-1].backgroundColor = 'blue';
-			sectionCategories.rows[sectionCategories.rowCount-1].children[0].text = 'Save Changes';
-		}
-	}
-});
 
 function validateSymptoms()
 {
-	if(symptoms_field.value == null || symptoms_field.value == '') {
+	if(treatment.symptoms.length < 1) {
 		alert('You must list at least one symptom');
 		return false;
 	}
@@ -1239,46 +1165,21 @@ function saveSymptoms()
 	if(!beforeSaving()) return;
 		
 		deleteSymptomsForTreatmentLocal(treatment.id);
-			treatment.symptoms.splice(0, treatment.symptoms.length);
-			
-			if(symptoms_field.value != null) {
-				if(symptoms_field.value.length > 1) {
-					symptoms_field.value.replace(".",",");
-					var final_symptoms = symptoms_field.value.split(',');
-					for(var i=0;i < final_symptoms.length;i++) {
-						if(final_symptoms[i].length < 2) continue;
-						final_symptoms[i] = removeWhiteSpace(final_symptoms[i]);
-						insertSymptomForTreatmentLocal(treatment.id,final_symptoms[i]);
-						treatment.symptoms.push(final_symptoms[i]);
-					}
-				}
-			}
+		//treatment.symptoms.splice(0, treatment.symptoms.length);
 		
-		if(sectionSymptoms.rows[sectionSymptoms.rowCount-1].backgroundColor == 'blue') { 
-			sectionSymptoms.rows[sectionSymptoms.rowCount-1].backgroundColor = '#CCC';
-			sectionSymptoms.rows[sectionSymptoms.rowCount-1].children[0].text = 'Changes Saved!';
+		for(var i=0; i < treatment.symptoms.length; i++) {
+			treatment.symptoms[i] = removeWhiteSpace(treatment.symptoms[i]);
+			insertSymptomForTreatmentLocal(treatment.id, treatment.symptoms[i]);
+		}
+		
+		if(sectionDetails.rows[sectionDetails.rowCount-1].backgroundColor == 'blue') { 
+			sectionDetails.rows[sectionDetails.rowCount-1].backgroundColor = '#CCC';
+			sectionDetails.rows[sectionDetails.rowCount-1].children[0].text = 'Changes Saved!';
 		}
 }
 
-sectionSymptoms.addEventListener('click', function(e) {
-	if(e.row.backgroundColor == 'blue') saveSymptoms();
-});
-
-symptoms_field.addEventListener('blur', function() {
-	if(symptoms_field.value.length > 0) {
-		if(sectionSymptoms.rows[sectionSymptoms.rowCount-1].backgroundColor == '#CCC') {
-			sectionSymptoms.rows[sectionSymptoms.rowCount-1].backgroundColor = 'blue';
-			sectionSymptoms.rows[sectionSymptoms.rowCount-1].children[0].text = 'Save Changes';
-		}
-	}
-});
-
 function validateSideEffects()
 {
-//	if(sideEffects_field.value == null || sideEffects_field.value == '') {
-//		alert('You must list at least one side effect');
-//		return false;
-//	}
 	return true;
 }
 
@@ -1289,71 +1190,18 @@ function saveSideEffects()
 	if(!beforeSaving()) return;
 		
 		deleteSideEffectsForTreatmentLocal(treatment.id);
-			treatment.sideEffects.splice(0, treatment.sideEffects.length);
-			
-			if(sideEffects_field.value != null) {
-				if(sideEffects_field.value.length > 1) {
-					sideEffects_field.value.replace(".",",");
-					var final_sideEffects = sideEffects_field.value.split(',');
-					for(var i=0;i < final_sideEffects.length;i++) {
-						if(final_sideEffects[i].length < 2) continue;
-						final_sideEffects[i] = removeWhiteSpace(final_sideEffects[i]);
-						insertSideEffectForTreatmentLocal(treatment.id,final_sideEffects[i]);
-						treatment.sideEffects.push(final_sideEffects[i]);
-					}
-				}
-			}
+		//treatment.sideEffects.splice(0, treatment.sideEffects.length);
 		
-		if(sectionSideEffects.rows[sectionSideEffects.rowCount-1].backgroundColor == 'blue') { 
-			sectionSideEffects.rows[sectionSideEffects.rowCount-1].backgroundColor = '#CCC';
-			sectionSideEffects.rows[sectionSideEffects.rowCount-1].children[0].text = 'Changes Saved!';
+		for(var i=0; i < treatment.sideEffects.length; i++) {
+			treatment.sideEffects[i] = removeWhiteSpace(treatment.sideEffects[i]);
+			insertSideEffectForTreatmentLocal(treatment.id, treatment.sideEffects[i]);
+		}
+		
+		if(sectionDetails.rows[sectionDetails.rowCount-1].backgroundColor == 'blue') { 
+			sectionDetails.rows[sectionDetails.rowCount-1].backgroundColor = '#CCC';
+			sectionDetails.rows[sectionDetails.rowCount-1].children[0].text = 'Changes Saved!';
 		}
 }
-
-sectionSideEffects.addEventListener('click', function(e) {
-	if(e.row.backgroundColor == 'blue') saveSideEffects();
-});
-
-sideEffects_field.addEventListener('blur', function() {
-	if(sideEffects_field.value.length > 0) {
-		if(sectionSideEffects.rows[sectionSideEffects.rowCount-1].backgroundColor == '#CCC') {
-			sectionSideEffects.rows[sectionSideEffects.rowCount-1].backgroundColor = 'blue';
-			sectionSideEffects.rows[sectionSideEffects.rowCount-1].children[0].text = 'Save Changes';
-		}
-	}
-});
-
-
-/*
-symptoms_field.addEventListener('blur', function() {
-	if(symptoms_field.value.length > 0)   {
-		for(var i=sectionSymptoms.rows.length-1;i > 0; i--)   {
-			if(symptoms_field.value.toLowerCase() == sectionSymptoms.rows[i].children[0].value.toLowerCase())   {
-				symptoms_field.value = '';
-				return;
-			}
-		}
-		new_symptom = Titanium.UI.createTextField({ value: symptoms_field.value, width: '99%', color: 'black', left: '1%' });
-		
-		new_symptom.addEventListener('blur', function(e) {
-			if(e.value.length < 1) {
-				var length = sectionSymptoms.rowCount;
-				for(var i=length-1;i>0;i--) {
-					if(sectionSymptoms.rows[i].children[0].value.length < 1) {	
-						sectionSymptoms.remove(sectionSymptoms.rows[i]);
-					}
-				}
-				table.data = [sectionDetails,sectionSymptoms, sectionOutcome, sectionSideEffects, sectionDelete ];
-			} 
-		});    
-		
-		sectionSymptoms.add(Ti.UI.createTableViewRow({ height: 45, selectedBackgroundColor: 'white' }));
-		sectionSymptoms.rows[sectionSymptoms.rowCount-1].add(new_symptom);
-		symptoms_field.value = '';
-	}
-	table.data = [sectionDetails,sectionSymptoms, sectionOutcome, sectionSideEffects, sectionDelete ];
-});
-*/	
 
 	return navGroupWindow;
 };

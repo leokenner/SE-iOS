@@ -7,28 +7,36 @@ function alerts(input, time_before_alerts)
 	Ti.include('ui/common/helpers/dateTime.js');
 	
 	//get the index at which to insert the new time
-	//0 and above means insert below, -1 means insert above the first row, -2 means the time exists and no row should be added
+	//0 and above means insert below, -1 means insert above the first row, -2 means the time exists and no row should be added, 
+	//-3 means there are no rows in the array and this should be appended
 	function getIndex(time)
 	{
 		var array = table.data[0].rows;
 		
+		if(array.length == 0) return -3;
+		
 		var start = 0;
 		var end = array.length-1;
 		var mid = Math.floor(array.length/2);
-		if(isLeftTimeGreater(time, array[end].time)) return end;
 		
 		while(1)
 		{
-			if(isLeftEqualToRight(time,array[mid].time)) return -2;
+			if(isLeftEqualToRight(time,array[mid].children[0].text)) return -2;
 			if(start >= end) {
-				if(isLeftTimeGreater(time, array[end].time)) {
+				if(isLeftTimeGreater(time, array[end].children[0].text)) {
 					return end;
 				}
 				else {
 					return start-1;
 				}
 			}
-			if(isLeftTimeGreater(time, array[mid].time)) {
+			if(!isLeftTimeGreater(time, array[start].children[0].text)) {
+				if(!isLeftEqualToRight(time, array[start].children[0].text)) {
+					return start-1;
+				}
+			}
+			if(isLeftTimeGreater(time, array[end].children[0].text)) return end;
+			if(isLeftTimeGreater(time, array[mid].children[0].text)) {
 				if(start != mid) start = mid;
 				else return start;
 			}
@@ -46,9 +54,9 @@ function alerts(input, time_before_alerts)
 	function insertTimes(the_time) 
 	{
 		//if the_time is null, it means we are inserting from the input array
-		if(!the_time) {
+		if(the_time == undefined) {
 			for(var i=0; i < input.length; i++) {
-				var row = Ti.UI.createTableViewRow({ backgroundColor: 'white', selectedBackgroundColor: 'white', time: input[i], });
+				var row = Ti.UI.createTableViewRow({ backgroundColor: 'white', selectedBackgroundColor: 'white', });
 				var time = Ti.UI.createLabel({ text: input[i], left: 15, font: { fontWeight: 'bold', fontSize: 18, }, width: '50%', });
 				row.add(time);
 				var trash_btn = Titanium.UI.createView({ backgroundColor: 'red', right: 15, width: 100, height: 30, });
@@ -60,7 +68,7 @@ function alerts(input, time_before_alerts)
 		}
 		else { 
 				var time = timeFormatted(the_time).time;
-				var row = Ti.UI.createTableViewRow({ backgroundColor: 'white', selectedBackgroundColor: 'white', time: time, });				
+				var row = Ti.UI.createTableViewRow({ backgroundColor: 'white', selectedBackgroundColor: 'white', });				
 				var time_row = Ti.UI.createLabel({ text: time, left: 15, font: { fontWeight: 'bold', fontSize: 18, }, width: '50%', });	
 				row.add(time_row);
 				var trash_btn = Titanium.UI.createView({ backgroundColor: 'red', right: 15, width: 100, height: 30, });
@@ -70,6 +78,9 @@ function alerts(input, time_before_alerts)
 				
 				var index = getIndex(time);
 				if(index == -2) return;
+				else if(index == -3) {
+					table.appendRow(row);
+				}
 				else if(index == -1) {
 					table.insertRowBefore(0, row, { animated: true, });		
 				}
@@ -91,7 +102,7 @@ function alerts(input, time_before_alerts)
 	self.addEventListener('close', function() {  
 		var array = [];
 		for(var i=0; i < table.data[0].rowCount; i++) {
-			array[i] = table.data[0].rows[i].time;
+			array[i] = table.data[0].rows[i].children[0].text;
 		}
 		self.result = array;
 	});
@@ -107,7 +118,6 @@ function alerts(input, time_before_alerts)
 	});
 	
 	close_btn.addEventListener('click', function() {
-		updateResult();
 		self.close();
 	});
 	//self.leftNavButton = close_btn;
@@ -126,10 +136,10 @@ function alerts(input, time_before_alerts)
 	});
 	
 	if(time_before_alerts === 'Time of event')
-		how_long_before.add(Ti.UI.createLabel({ text: "You will receive alerts reminding you to administer the medication at "+
+		how_long_before.add(Ti.UI.createLabel({ text: "You will receive reminders at "+
 													"the exact times listed here.", textAlign: 'center', color: 'white' }));
 	else 
-		how_long_before.add(Ti.UI.createLabel({ text: "You will receive alerts reminding you to administer the medication "+time_before_alerts+
+		how_long_before.add(Ti.UI.createLabel({ text: "You will receive reminders "+time_before_alerts+
 													" the times listed here.", textAlign: 'center', color: 'white' }));
 	self.add(how_long_before);
 	
@@ -139,7 +149,7 @@ function alerts(input, time_before_alerts)
 		rowHeight: 60,
 	});
 	
-	insertTimes(null);
+	insertTimes();
 	self.add(table);
 	
 	
@@ -151,7 +161,7 @@ function alerts(input, time_before_alerts)
 		}
 		
 		modalPicker = require('ui/common/helpers/modalPicker');
-		var modalPicker = new modalPicker(Ti.UI.PICKER_TYPE_TIME,null,e.row.time); 
+		var modalPicker = new modalPicker(Ti.UI.PICKER_TYPE_TIME,null,e.row.children[0].text); 
 	
 		if(self.leftNavButton != null) { 
 			self.leftNavButton.setTouchEnabled(false);

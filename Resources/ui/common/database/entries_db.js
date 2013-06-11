@@ -102,6 +102,28 @@ function getEntryByCloudIdLocal(cloud_id)
 	return results;
 }
 
+function getEntryBy(column, data)
+{
+	var sql = "SELECT * FROM entries WHERE "+column+"='"+data+"'"; 
+	
+	var results = [];
+	var resultSet = db.execute(sql);
+    while (resultSet.isValidRow()) {
+			results.push({
+			  id: resultSet.fieldByName('id'),
+			  cloud_id: resultSet.fieldByName('cloud_id'),
+			  record_id: resultSet.fieldByName('record_id'),
+		   	  main_entry: resultSet.fieldByName('main_entry'),
+		   	  date: resultSet.fieldByName('date'),
+		   	  location: resultSet.fieldByName('location'),
+	        });
+	resultSet.next();
+    }
+    resultSet.close();		
+
+	return results;
+}
+
 
 
 function updateEntryLocal(entry_id, main_entry, date, location) 
