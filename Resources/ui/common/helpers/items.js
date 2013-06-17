@@ -1,5 +1,5 @@
 
-function items(title, input)
+function items(input, title)
 {
 	Ti.include('ui/common/database/database.js');
 	Ti.include('ui/common/helpers/dateTime.js');

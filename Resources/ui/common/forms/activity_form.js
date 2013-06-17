@@ -26,7 +26,7 @@ var activity = {
 		localNotifications: input.activity.local_notifications?input.activity.local_notifications:0,
 		location: input.activity.location?input.activity.location:null,
 		goals: input.activity.goals?input.activity.goals:[],
-		end_notes: input.activity.end_notes?input.activity.end_notes:'No observations',
+		additional_notes: input.activity.additional_notes?input.activity.additional_notes:'No observations',
 		status: input.activity.status?input.activity.status:'Scheduled',
 		successful: input.activity.successful?input.activity.successful:'Yes/No?',
 		facebook_id: input.activity.facebook_id?input.activity.facebook_id:null,
@@ -187,7 +187,7 @@ save_btn.addEventListener('click', function() {
 			if(!validateDetails() || !validateActivity() || !validateGoals()) return;
 			if(!beforeSaving()) return;
 			saveStatus();
-			saveEndNotes();
+			saveAdditionalNotes();
 			saveGoals();
 			saveMainActivity();
 			saveDetails();
@@ -200,7 +200,7 @@ save_btn.addEventListener('click', function() {
 			activity.interval = interval.text;
 			activity.alert = alert_text.text;
 			activity.location = location.value;
-			activity.end_notes = end_notes.text;
+			activity.additional_notes = additional_notes.text;
 			//window.result = activity;
 			navGroupWindow.result = activity;
 			//navGroupWindow.getChildren()[0].close(window);
@@ -220,18 +220,17 @@ var table = Ti.UI.createTableView({
 	var status = Ti.UI.createLabel({ left: '40%', width: 150, text: activity.status, font: { fontWeight: 'bold', fontSize: 20, }, });
 	sectionStatus.rows[0].add(status_title);
 	sectionStatus.rows[0].add(status);
+	
+	var rowAdditionalNotes = Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', height: 90, hasChild: true, });
+	var additional_notes = Ti.UI.createLabel({ left: 15, width: '90%', text: activity.additional_notes, font: { fontSize: 15, }, });
+	rowAdditionalNotes.add(additional_notes);
+	if(activity.status === 'Completed') {
+		sectionStatus.add(rowAdditionalNotes);
+	}
+	
 	if(activity.id) {
 		sectionStatus.add(Ti.UI.createTableViewRow({ backgroundColor: '#CCC', })); 
 		sectionStatus.rows[sectionStatus.rowCount-1].add(Ti.UI.createLabel({ text: 'No Change Made', textAlign: 'center', font: { fontSize: 15, }, width: '80%', }));
-	}
-	
-	var sectionEndNotes = Ti.UI.createTableViewSection({ headerTitle: 'Observations?' });
-	sectionEndNotes.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', height: 90, hasChild: true, }));	
-	var end_notes = Ti.UI.createLabel({ left: 15, width: '90%', text: activity.end_notes, font: { fontSize: 15, }, });
-	sectionEndNotes.rows[0].add(end_notes);
-	if(activity.id) {
-		sectionEndNotes.add(Ti.UI.createTableViewRow({ backgroundColor: '#CCC', }));
-		sectionEndNotes.rows[sectionEndNotes.rowCount-1].add(Ti.UI.createLabel({ text: 'No Change Made', textAlign: 'center', font: { fontSize: 15, }, }));
 	}
 	
 	var sectionPatient = Ti.UI.createTableViewSection({ headerTitle: 'Patient (required)', });
@@ -259,28 +258,11 @@ var table = Ti.UI.createTableView({
 	sectionPatient.rows[4].add(diagnosis_title);
 	sectionPatient.rows[4].add(diagnosis);
 	
-	var sectionGoals = Ti.UI.createTableViewSection({ headerTitle: '*Goals' });
-	sectionGoals.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', hasChild: true, }));
-	if(activity.goals.length == 0) var goals_message = "No goals listed";
-	else if(activity.goals.length == 1) var goals_message = activity.goals.length+" goals listed";
-	else var goals_message = activity.goals.length+" goals listed";
-	var goals_title = Titanium.UI.createLabel({ text: goals_message, left: 15, width: '100%', font: { fontWeight: 'bold', fontSize: 18, }, });
-	sectionGoals.rows[0].add(goals_title);
-	
-	var sectionActivity = Ti.UI.createTableViewSection({ headerTitle: 'Activity description(required)'});
-	sectionActivity.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', height: 90, hasChild: true, }));
-	sectionActivity.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', }));
-	sectionActivity.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', })); 
-	var main_activity = Ti.UI.createLabel({ left: 15, width: '90%', text: activity.main_activity, font: { fontSize: 15, }, });
-	var location_description = Titanium.UI.createLabel({ text: "If this activity needs to happen at a particular location, please mention it here", left: 15, font: { fontSize: 15, }, });
-	var location_title = Titanium.UI.createLabel({ text: 'Location', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
-	var location = Titanium.UI.createTextField({ hintText: 'eg: home', value: activity.location, width: '55%', left: '45%' });
-	sectionActivity.rows[0].add(main_activity);
-	sectionActivity.rows[1].add(location_description);
-	sectionActivity.rows[2].add(location_title);
-	sectionActivity.rows[2].add(location);
-	
-	var sectionDetails = Ti.UI.createTableViewSection({ headerTitle: 'Details(* = required)' });
+	var sectionDetails = Ti.UI.createTableViewSection({ headerTitle: 'Activity Details(* = required)' });
+	sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', hasChild: true, }));
+	sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', height: 90, hasChild: true, }));
+	sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
+	sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
 	sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
 	sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
 	sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
@@ -288,35 +270,50 @@ var table = Ti.UI.createTableView({
 	sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
 	sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
 	sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', hasChild: true, }));
+	
+	if(activity.goals.length == 0) var goals_message = "No goals listed";
+	else if(activity.goals.length == 1) var goals_message = activity.goals.length+" goals listed";
+	else var goals_message = activity.goals.length+" goals listed";
+	
+	var goals_title = Titanium.UI.createLabel({ text: goals_message, left: 15, width: '100%', font: { fontWeight: 'bold', fontSize: 18, }, });
+	var main_activity = Ti.UI.createLabel({ left: 15, width: '90%', text: activity.main_activity, font: { fontSize: 15, }, });
+	var location_description = Titanium.UI.createLabel({ text: "If this activity needs to happen at a particular location, please mention it here", left: 15, font: { fontSize: 15, }, });
+	var location_title = Titanium.UI.createLabel({ text: 'Location', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
+	var location = Titanium.UI.createTextField({ hintText: 'eg: home', value: activity.location, width: '55%', left: '45%' });
 	var startDate_title = Titanium.UI.createLabel({ text: '*Start date', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
-	var start_date = Titanium.UI.createLabel({ text: activity.start_date, width: '55%', left: '45%', old_start_date: activity.start_date, });
+	var start_date = Titanium.UI.createLabel({ text: activity.start_date, width: '55%', left: '45%', });
 	var endDate_title = Titanium.UI.createLabel({ text: '*End date', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
-	var end_date = Titanium.UI.createLabel({ text: activity.end_date, width: '55%', left: '45%', old_end_date: activity.end_date, });
+	var end_date = Titanium.UI.createLabel({ text: activity.end_date, width: '55%', left: '45%', });
 	var frequency_title = Titanium.UI.createLabel({ text: '*How Many Times?', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
 	var frequency = Titanium.UI.createLabel({ text: activity.frequency, left: '60%', width: '40%', }); //keyboard type 4 = number pad
 	var interval_title = Titanium.UI.createLabel({ text: '*Interval', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
-	var interval = Ti.UI.createLabel({ text: activity.interval, left: '60%', width: '40%', bubbleParent: false, old_interval: activity.interval, });
+	var interval = Ti.UI.createLabel({ text: activity.interval, left: '60%', width: '40%', bubbleParent: false, });
 	var alert_description = Titanium.UI.createLabel({ text: "You can choose how long before every scheduled activity you would "+
 														"like to be alerted. For example: if you have to ensure the activity is completed "+
 														"twice a day, and you choose to be alerted 15 minutes before, we will "+
 														"notify you 15 minutes before the two times that you choose below.", left: 15, font: { fontSize: 15, }, });
 	var alert_title = Titanium.UI.createLabel({ text: '*Alert at', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
-	var alert_text = Ti.UI.createLabel({ text: activity.alert, left: '60%', width: '40%', bubbleParent: false, old_advance: activity.alert, });
-	var alertsPage_title = Titanium.UI.createLabel({ text: '('+activity.times.length+') Times for alerts', left: 15, width: '100%', font: { fontWeight: 'bold', fontSize: 18, }, old_times: activity.times, });
+	var alert_text = Ti.UI.createLabel({ text: activity.alert, left: '60%', width: '40%', bubbleParent: false, });
+	var alertsPage_title = Titanium.UI.createLabel({ text: '('+activity.times.length+') Times for alerts', left: 15, width: '100%', font: { fontWeight: 'bold', fontSize: 18, }, });
 	if(frequency.text == 0) alertsPage_title.color = '#CCC';
 	else alertsPage_title.color = 'black';
-	sectionDetails.rows[0].add(startDate_title);
-	sectionDetails.rows[0].add(start_date);
-	sectionDetails.rows[1].add(endDate_title);
-	sectionDetails.rows[1].add(end_date);
-	sectionDetails.rows[2].add(frequency_title);
-	sectionDetails.rows[2].add(frequency);
-	sectionDetails.rows[3].add(interval_title);
-	sectionDetails.rows[3].add(interval);
-	sectionDetails.rows[4].add(alert_description);
-	sectionDetails.rows[5].add(alert_title);
-	sectionDetails.rows[5].add(alert_text);
-	sectionDetails.rows[6].add(alertsPage_title);
+	sectionDetails.rows[0].add(goals_title);
+	sectionDetails.rows[1].add(main_activity);
+	sectionDetails.rows[2].add(location_description);
+	sectionDetails.rows[3].add(location_title);
+	sectionDetails.rows[3].add(location);
+	sectionDetails.rows[4].add(startDate_title);
+	sectionDetails.rows[4].add(start_date);
+	sectionDetails.rows[5].add(endDate_title);
+	sectionDetails.rows[5].add(end_date);
+	sectionDetails.rows[6].add(frequency_title);
+	sectionDetails.rows[6].add(frequency);
+	sectionDetails.rows[7].add(interval_title);
+	sectionDetails.rows[7].add(interval);
+	sectionDetails.rows[8].add(alert_description);
+	sectionDetails.rows[9].add(alert_title);
+	sectionDetails.rows[9].add(alert_text);
+	sectionDetails.rows[10].add(alertsPage_title);
 	if(activity.id) { 
 		sectionDetails.add(Ti.UI.createTableViewRow({ backgroundColor: '#CCC', }));
 		sectionDetails.rows[sectionDetails.rowCount-1].add(Ti.UI.createLabel({ text: 'No Change Made', textAlign: 'center', font: { fontSize: 15, }, width: '80%', }));
@@ -402,25 +399,10 @@ var table = Ti.UI.createTableView({
 		if(!isValidDate(activity.end_date) && status.text === 'Scheduled') {
 			status.text = "Complete";
 		}
-		if(activity.status == "Completed") {
-			if(Titanium.App.Properties.getString('child')) {
-				table.data = [sectionStatus, sectionEndNotes, sectionGoals, sectionActivity, sectionDetails];
-			}
-			else { 
-				table.data = [sectionStatus, sectionEndNotes, sectionPatient, sectionGoals, sectionActivity, sectionDetails];	
-			}
-		}
-		else {
-			if(Titanium.App.Properties.getString('child')) {
-				table.data = [sectionStatus, sectionGoals, sectionActivity, sectionDetails];
-			}
-			else { 
-				table.data = [sectionStatus, sectionPatient, sectionGoals, sectionActivity, sectionDetails];
-			}	
-		}
+		table.data = [sectionStatus, sectionDetails];	
 	}
 	else {
-		table.data = [sectionPatient, sectionGoals, sectionActivity, sectionDetails];
+		table.data = sectionDetails;
 	}
 	
 	window.add(table);
@@ -468,7 +450,7 @@ function beforeSaving()
 										alert: alert_text.text,
 										goals: activity.goals,
 										times: activity.times,
-										end_notes: end_notes.text,
+										additional_notes: additional_notes.text,
 										status: status.text,
 										//facebook_id: activity.facebook_id,
 									});
@@ -510,6 +492,76 @@ function deactivateSaveButton()
 		sectionDetails.rows[sectionDetails.rowCount-1].children[0].text = 'Changes Saved!';
 	}
 }
+
+//grey out an entire section to show it cant be modified
+function blurSection(section)
+{
+	for(var i=0; i < section.rowCount; i++) {
+		section.rows[i].backgroundColor = '#999999';
+		var children = section.rows[i].children;
+		for(var j=0; j < children.length; j++) {
+			if(children[j].value != undefined) {
+				children[j].setEnabled(false);
+			}
+			children[j].backgroundColor = '#999999';
+		}
+	}
+}
+
+//un-grey an entire section to show it can be modified
+function unBlurSection(section)
+{
+	for(var i=0; i < section.rowCount; i++) {
+		section.rows[i].backgroundColor = 'white';
+		var children = section.rows[i].children;
+		for(var j=0; j < children.length; j++) {
+			children[j].backgroundColor = 'white';
+			if(children[j].value != undefined) { 
+				children[j].setEnabled(true);
+			}
+			if(i == section.rowCount-1) {
+				section.rows[i].backgroundColor = '#CCC';
+				children[j].backgroundColor = 'transparent';
+			}
+		}
+	}
+}
+
+function isBlurred(e)
+{
+	return (e.row.backgroundColor == '#999999')?true:false; 
+}
+
+//returns true if user has allowed a status change, otherwise return false
+function changeStatusAndUnblur()
+{
+	var confirm = Titanium.UI.createAlertDialog({ title: 'You cannot edit this field', 
+							message: 'You must declare this activity as scheduled in order to edit this field.'+
+										' Would you like to change the status to scheduled?', 
+							buttonNames: ['Yes','No'], cancel: 1 });
+										
+					confirm.addEventListener('click', function(g) { 
+				  			//Clicked cancel, first check is for iphone, second for android
+				   		if (g.cancel === g.index || g.cancel === true) { return; }
+							
+							
+				  		 switch (g.index) {
+				     		 case 0:
+				     		 	if(status.text === 'Completed') {
+				     		 		table.deleteRow(rowAdditionalNotes);
+				     		 	}
+				      			status.text = 'Scheduled';
+				      			saveStatus(sectionStatus.rowCount-1);
+				      			unBlurSection(sectionDetails);
+				      			return true;
+							
+				      		 case 1:       			
+				      		 default: return false;
+			  			}
+					});
+					confirm.show();
+}
+
 
 function validateGoals()
 {
@@ -562,138 +614,67 @@ function validateDetails()
 	return true;
 }
 
-function saveStatus()
+function saveStatus(row_index)
 {
-	if(!beforeSaving()) return;
 	updateActivityLocal(activity.id, 'status', status.text);
 	activity.status = status.text;
-	if(sectionStatus.rows[sectionStatus.rowCount-1].backgroundColor == 'blue')	sectionStatus.rows[sectionStatus.rowCount-1].backgroundColor = '#CCC';
-	if(status.text != 'Scheduled') sectionStatus.rows[sectionStatus.rowCount-1].children[0].text = 'Changes Saved!';
-	else { sectionStatus.rows[sectionStatus.rowCount-1].children[0].text = 'Changes Saved-Pleased change dates below'; }
+	if(sectionStatus.rows[row_index].backgroundColor == 'blue')	{
+		sectionStatus.rows[row_index].backgroundColor = '#CCC';
+		sectionStatus.rows[row_index].children[0].text = 'Changes Saved!';
+	}
+	
+	return true;
 }
 
-function saveEndNotes()
+function saveAdditionalNotes(row_index)
+{	
+	updateActivityLocal(activity.id, 'additional_notes', additional_notes.text);
+	
+	if(sectionStatus.rows[row_index].backgroundColor == 'blue') {
+		sectionStatus.rows[row_index].backgroundColor = '#CCC';
+		sectionStatus.rows[row_index].children[0].text = 'Changes Saved';
+	}
+	return true;
+}
+
+function saveStatusData(row_index)
 {
 	if(!beforeSaving()) return;
+	saveStatus(row_index);
+	saveAdditionalNotes(row_index);
 	
-	updateActivityLocal(activity.id, 'end_notes', end_notes.text);
-	
-	if(sectionEndNotes.rows[sectionEndNotes.rowCount-1].backgroundColor == 'blue') {
-		sectionEndNotes.rows[sectionEndNotes.rowCount-1].backgroundColor = '#CCC';
-		sectionEndNotes.rows[sectionEndNotes.rowCount-1].children[0].text = 'Changes Saved';
+	if(sectionStatus.rows[row_index].backgroundColor == 'blue') {
+		sectionStatus.rows[row_index].backgroundColor = '#CCC';
 	}
+
 }
 
 function saveGoals()
-{
-	if(!validateGoals()) return false;	
-	if(!beforeSaving()) return false;
+{		
+	deleteGoalsForActivityLocal(activity.id);
 		
-		deleteGoalsForActivityLocal(activity.id);
-		
-		for(var i=0; i < activity.goals.length; i++) {
-			activity.goals[i] = removeWhiteSpace(activity.goals[i]);
-			insertGoalForActivityLocal(activity.id, activity.goals[i]);
-		}
+	for(var i=0; i < activity.goals.length; i++) {
+		activity.goals[i] = removeWhiteSpace(activity.goals[i]);
+		insertGoalForActivityLocal(activity.id, activity.goals[i]);
+	}
 	
-		return true;
+	return true;
 }
 
 function saveMainActivity()
 {
-	if(!beforeSaving()) return false;
 	updateActivityLocal(activity.id, 'main_activity', main_activity.text);
+	return true;
+}
+
+function saveLocation()
+{
 	updateActivityLocal(activity.id, 'location', location.value);
 	return true;
 }
 
-function deleteAllLocalNotifications()
-{
-	if(alertsPage_title.old_times.length == 0) return;
-	
-	var old_times = alertsPage_title.old_times;
-	var local_start_date = start_date.old_start_date;
-	var local_end_date = end_date.old_end_date;
-	var old_advance = alert_text.old_advance;
-	
-	var days = Math.floor(( Date.parse(local_end_date) - Date.parse(local_start_date) ) / 86400000);
-	if(old_advance === 'Time of event') var advance = 0;
-	else { var advance = old_advance.split(' ')[0]; }
-	
-	var i=0;
-	var d = new Date(local_start_date+' '+old_times[0]);
-	do {
-				d.setDate(d.getDate()+i); 	
-				for(var j=0; j < old_times.length; j++) {
-					//It means the text was alert time is in the hours
-					if(advance > 0 && advance < 5) { 
-						d.setHours(new Date(local_start_date+' '+old_times[j]).getHours()-advance);
-					}
-					else {  
-						d.setMinutes(new Date(local_start_date+' '+old_times[j]).getMinutes()-advance);
-					}
-					var local_notification_id = d.getTime();
-					
-					Ti.App.iOS.cancelLocalNotification(local_notification_id);
-				}
-				i++;
-		} while(i < days);
-}
-
-function saveDetails()
-{
-	if(!validateDetails()) return false;
-	if(!beforeSaving()) return false;
-	
-	//deleteAllLocalNotifications();
-	
-/*	var days = Math.floor(( Date.parse(end_date.text) - Date.parse(start_date.text) ) / 86400000);
-	if(alert_text.text === 'Time of event') var advance = 0;
-	else { var advance = alert_text.text.split(' ')[0]; }
-	
-	if(interval.text === "every day") var day_increment=1;
-	else if(interval.text === "every 2 days") var day_increment=2;
-	else if(interval.text === "every 3 days") var day_increment=3;
-	else if(interval.text === "every 4 days") var day_increment=4;
-	else if(interval.text === "every week") var day_increment=7;
-	else if(interval.text === "every 2 weeks") var day_increment=14;
-	
-	var i=0;
-	var d = new Date(start_date.text+' '+activity.times[0]);
-
-	
-	if(alert_text.text != 'Never') {	
-		do {
-				d.setDate(d.getDate()+i); 	
-				for(var j=0; j < activity.times.length; j++) {
-					//It means the text was alert time is in the hours
-					if(advance > 0 && advance < 5) { 
-						d.setHours(new Date(start_date.text+' '+activity.times[j]).getHours()-advance);
-					}
-					else {  
-						d.setMinutes(new Date(start_date.text+' '+activity.times[j]).getMinutes()-advance);
-					}
-					var local_notification_id = d.getTime();
-					
-						 
-					Ti.App.iOS.scheduleLocalNotification({ 
-						alertBody: child.first_name+" needs to complete an activity", 
-						alertAction: "view", 
-						userInfo: {"id": local_notification_id }, 
-						date: new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null),  
-					});		
-				}
-				i++;
-		} while(i < days);
-	} */
-	Ti.App.fireEvent('eventSaved');
-	
-	alertsPage_title.old_times = activity.times;
-	alert_text.old_advance = alert_text.text;
-	interval.old_interval = interval.text;
-	start_date.old_start_date = activity.start_date;
-	end_date.old_end_date = activity.end_date;
-	
+function saveDateTimeDetails()
+{	
 	activity.start_date = start_date.text;
 	activity.end_date = end_date.text;	
 	activity.frequency = frequency.text;
@@ -705,15 +686,12 @@ function saveDetails()
 	updateActivityLocal(activity.id, 'frequency', frequency.text);
 	updateActivityLocal(activity.id, 'interval', interval.text);
 	updateActivityLocal(activity.id, 'alert', alert_text.text);
-	
-	
+		
 	deleteTimesForActivityLocal(activity.id);
 	
 	for(var i=0; i < activity.times.length; i++) {
 		insertTimeForActivityLocal(activity.id, activity.times[i]);
 	}
-	
-	deactivateSaveButton();
 }
 	
 	
@@ -755,10 +733,12 @@ if(Titanium.Platform.osname == 'ipad') modalPicker.addEventListener('hide', pick
 
 sectionStatus.addEventListener('click', function(e) {
 	if(e.row.backgroundColor == 'blue') {
-		saveStatus();
+		saveStatusData(e.index);
 		return;
 	}
-	
+});
+
+status.addEventListener('click', function() {
 	var data = [];
 	data[0] = 'Scheduled';
 	data[1] = 'Completed';
@@ -781,10 +761,16 @@ sectionStatus.addEventListener('click', function(e) {
 		if(modalPicker.result) {
 			//The diagnosis section must only show if the appointment has been completed
 			if(modalPicker.result == 'Completed' && status.text != 'Completed') {
-				table.data = [sectionStatus, sectionEndNotes, sectionPatient, sectionGoals, sectionActivity, sectionDetails];
+				table.insertRowAfter(0, rowAdditionalNotes);
 			}
 			if(modalPicker.result != 'Complete' && status.text == 'Completed') {
-				table.data = [sectionStatus, sectionCategories, sectionPatient, sectionGoals, sectionActivity, sectionDetails];
+				table.deleteRow(rowAdditionalNotes);
+			}
+			if(modalPicker.result == 'Completed' || modalPicker.result == 'Cancelled') {
+				blurSection(sectionDetails);
+			}
+			if(modalPicker.result == 'Scheduled') {
+				unBlurSection(sectionDetails);
 			}
 			if(sectionStatus.rows[sectionStatus.rowCount-1].backgroundColor == '#CCC') {
 				sectionStatus.rows[sectionStatus.rowCount-1].backgroundColor = 'blue';
@@ -804,42 +790,40 @@ sectionStatus.addEventListener('click', function(e) {
 		if(Titanium.Platform.osname == 'ipad') modalPicker.addEventListener('hide', picker_closed);
 });
 
-sectionEndNotes.addEventListener('click', function(e) {
-	if(e.row.backgroundColor == 'blue') {
-		saveEndNotes();
-		return;
-	}
-	
-	var end_notes_page = require('ui/common/helpers/textarea');
-	if(end_notes.text === "No observations") {
-		var end_notes_text = '';
+rowAdditionalNotes.addEventListener('click', function() {	
+	var additional_notes_page = require('ui/common/helpers/textarea');
+	if(additional_notes.text === "No observations") {
+		var additional_notes_text = '';
 	}
 	else {
-		end_notes_text = end_notes.text;
+		additional_notes_text = additional_notes.text;
 	}
-	end_notes_page = new end_notes_page('Main Activity', "Describe the main activity", main_activity_text);
+	additional_notes_page = new additional_notes_page('Observations', "Make any notes regarding the outcome of this activity", additional_notes_text);
 	var children = navGroupWindow.getChildren();
-	children[0].open(end_notes_page);
+	children[0].open(additional_notes_page);
 													
-	end_notes_page.addEventListener('close', function() {
-		if(!end_notes_page.result) {
-			end_notes.text = "No activity";
+	additional_notes_page.addEventListener('close', function() {
+		if(!additional_notes_page.result) {
+			additional_notes.text = "No observations";
 		}
 		else {
-			end_notes.text = end_notes_page.result;
+			additional_notes.text = additional_notes_page.result;
 		}
 	});
 	
-	if(sectionEndNotes.rows[sectionEndNotes.rowCount-1].backgroundColor == '#CCC') {
-		sectionEndNotes.rows[sectionEndNotes.rowCount-1].backgroundColor = 'blue';
-		sectionEndNotes.rows[sectionEndNotes.rowCount-1].children[0].text = 'Save Changes';
+	if(sectionStatus.rows[sectionStatus.rowCount-1].backgroundColor == '#CCC') {
+		sectionStatus.rows[sectionStatus.rowCount-1].backgroundColor = 'blue';
+		sectionStatus.rows[sectionStatus.rowCount-1].children[0].text = 'Save Changes';
 	}
 });
 
 
-goals_title.addEventListener('click', function() {
+goals_title.addEventListener('click', function(e) {
+if(isBlurred(e)) {
+	if(!changeStatusAndUnblur()) return;
+}	
 	var goals_page = require('ui/common/helpers/items');
-	goals_page = new goals_page('Goals', activity.goals);
+	goals_page = new goals_page(activity.goals, 'Goals');
 	var children = navGroupWindow.getChildren();
 	children[0].open(goals_page);
 	
@@ -852,7 +836,10 @@ goals_title.addEventListener('click', function() {
 	});
 });
 
-main_activity.addEventListener('click', function() {
+main_activity.addEventListener('click', function(e) {
+if(isBlurred(e)) {
+	if(!changeStatusAndUnblur()) return;
+}	
 	var activity_page = require('ui/common/helpers/textarea');
 	if(main_activity.text === "No activity") {
 		var main_activity_text = '';
@@ -876,17 +863,38 @@ main_activity.addEventListener('click', function() {
 	activateSaveButton();
 });
 
+location.addEventListener('click', function(e) {
+	if(isBlurred(e)) {
+		if(!changeStatusAndUnblur()) location.blur();
+	}
+});
 
-start_date.addEventListener('click', function() {
+location.addEventListener('blur', function() {
+	if(location.value.length > 0) {
+		activateSaveButton();
+	}
+});
+
+start_date.addEventListener('click', function(e) {
+	if(isBlurred(e)) {
+		if(!changeStatusAndUnblur()) return;
+	}	
 	changeDate(start_date);
 	activity.start_date = start_date.text;
-	});
-end_date.addEventListener('click', function() {
+});
+
+end_date.addEventListener('click', function(e) {
+	if(isBlurred(e)) {
+		if(!changeStatusAndUnblur()) return;
+	}	
 	changeDate(end_date);
 	activity.end_date = end_date.text;
-	});	
+});	
 
-frequency.addEventListener('click', function() {
+frequency.addEventListener('click', function(e) {
+if(isBlurred(e)) {
+	if(!changeStatusAndUnblur()) return;
+}	
 	var data = '123456789';
 	
 	modalPicker = require('ui/common/helpers/modalPicker');
@@ -917,6 +925,7 @@ frequency.addEventListener('click', function() {
 				
 			}
 			frequency.text = modalPicker.result;
+			activateSaveButton();
 		}
 		window.setTouchEnabled(true);
 		if(window.leftNavButton != null) { 
@@ -931,7 +940,10 @@ frequency.addEventListener('click', function() {
 		
 });
 
-interval.addEventListener('click', function() {
+interval.addEventListener('click', function(e) {
+if(isBlurred(e)) {
+	if(!changeStatusAndUnblur()) return;
+}	
 	var data = [];
 	data[0] = 'every day';
 	data[1] = 'every 2 days';
@@ -959,6 +971,7 @@ interval.addEventListener('click', function() {
 				activateSaveButton();
 			} 
 			interval.text = modalPicker.result;
+			activateSaveButton();
 		}
 		window.setTouchEnabled(true);
 		if(window.leftNavButton != null) { 
@@ -972,7 +985,10 @@ interval.addEventListener('click', function() {
 	if(Titanium.Platform.osname == 'ipad') modalPicker.addEventListener('hide', picker_closed);
 });
 
-alert_text.addEventListener('click', function() {
+alert_text.addEventListener('click', function(e) {
+if(isBlurred(e)) {
+	if(!changeStatusAndUnblur()) return;
+}	
 	var data = [];
 	data[0] = 'Time of event';
 	data[1] = '5 minutes before';
@@ -1008,6 +1024,7 @@ alert_text.addEventListener('click', function() {
 				addRemoveTimes(frequency.text - activity.times.length);
 			}
 			alert_text.text = modalPicker.result;
+			activateSaveButton();
 		}
 		window.setTouchEnabled(true);
 		if(window.leftNavButton != null) { 
@@ -1021,7 +1038,10 @@ alert_text.addEventListener('click', function() {
 	if(Titanium.Platform.osname == 'ipad') modalPicker.addEventListener('hide', picker_closed);
 });
 
-alertsPage_title.addEventListener('click', function() {
+alertsPage_title.addEventListener('click', function(e) {
+if(isBlurred(e)) {
+	if(!changeStatusAndUnblur()) return;
+}	
 	if(this.color == '#CCC') {
 		alert("You have to set 'How many times' to 1 or more and Alert must not be 'Never' in order for you to set times");
 		return;
@@ -1050,6 +1070,9 @@ sectionDetails.addEventListener('click', function(e) {
 			saveGoals();
 			saveMainActivity();
 			saveDetails();
+			
+			Ti.App.fireEvent('eventSaved');
+			deactivateSaveButton();
 	}
 })
 

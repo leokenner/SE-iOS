@@ -427,8 +427,40 @@ Ti.App.iOS.addEventListener('notification', function(e) {
 	window.add(label);
 	window.open({ modal: true });						     		  	
 });
-
-
+/*
+function deleteAllLocalNotifications()
+{
+	if(alertsPage_title.old_times.length == 0) return;
+	
+	var old_times = alertsPage_title.old_times;
+	var local_start_date = start_date.old_start_date;
+	var local_end_date = end_date.old_end_date;
+	var old_advance = alert_text.old_advance;
+	
+	var days = Math.floor(( Date.parse(local_end_date) - Date.parse(local_start_date) ) / 86400000);
+	if(old_advance === 'Time of event') var advance = 0;
+	else { var advance = old_advance.split(' ')[0]; }
+	
+	var i=0;
+	var d = new Date(local_start_date+' '+old_times[0]);
+	do {
+				d.setDate(d.getDate()+i); 	
+				for(var j=0; j < old_times.length; j++) {
+					//It means the text was alert time is in the hours
+					if(advance > 0 && advance < 5) { 
+						d.setHours(new Date(local_start_date+' '+old_times[j]).getHours()-advance);
+					}
+					else {  
+						d.setMinutes(new Date(local_start_date+' '+old_times[j]).getMinutes()-advance);
+					}
+					var local_notification_id = d.getTime();
+					
+					Ti.App.iOS.cancelLocalNotification(local_notification_id);
+				}
+				i++;
+		} while(i < days);
+}
+*/
 
 Ti.App.addEventListener('resumed', function() { isAppActive=true; });
 Ti.App.addEventListener('paused', function() { isAppActive=false; });

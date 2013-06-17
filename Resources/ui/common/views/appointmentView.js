@@ -69,7 +69,6 @@ Ti.include('ui/common/helpers/dateTime.js');
 			}
 			input = input[0];
 			input.doctor = getDoctorByAppointmentLocal(input.id)[0];
-			input.categories = getCategoriesOfAppointmentLocal(input.id);
 			input.symptoms = getSymptomsOfAppointmentLocal(input.id);
 			
 			doctor.text = input.doctor.name?'Dr. '+input.doctor.name:'Doctor Unknown';

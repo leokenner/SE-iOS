@@ -5,7 +5,7 @@ function initActivitiesDBLocal()
 {
 	Ti.include('ui/common/database/database.js');
 	
-	db.execute('CREATE TABLE IF NOT EXISTS activities (ID INTEGER PRIMARY KEY AUTOINCREMENT, CLOUD_ID TEXT, ENTRY_ID INTEGER, APPOINTMENT_ID INTEGER, MAIN_ACTIVITY TEXT NOT NULL, RECOMMENDED_BY TEXT, DIAGNOSIS TEXT, START_DATE TEXT NOT NULL, END_DATE TEXT NOT NULL, FREQUENCY TEXT, INTERVAL TEXT, ALERT TEXT, STATUS TEXT, LOCATION TEXT, END_NOTES TEXT, FACEBOOK_ID TEXT, FOREIGN KEY(ENTRY_ID) REFERENCES entries (ID), FOREIGN KEY(APPOINTMENT_ID) REFERENCES appointments (ID))');
+	db.execute('CREATE TABLE IF NOT EXISTS activities (ID INTEGER PRIMARY KEY AUTOINCREMENT, CLOUD_ID TEXT, ENTRY_ID INTEGER, APPOINTMENT_ID INTEGER, MAIN_ACTIVITY TEXT NOT NULL, RECOMMENDED_BY TEXT, DIAGNOSIS TEXT, START_DATE TEXT NOT NULL, END_DATE TEXT NOT NULL, FREQUENCY TEXT, INTERVAL TEXT, ALERT TEXT, STATUS TEXT, LOCATION TEXT, ADDITIONAL_NOTES TEXT, FACEBOOK_ID TEXT, FOREIGN KEY(ENTRY_ID) REFERENCES entries (ID), FOREIGN KEY(APPOINTMENT_ID) REFERENCES appointments (ID))');
 	db.execute('CREATE TABLE IF NOT EXISTS activity_times (ACTIVITY_ID INTEGER NOT NULL, TIME TEXT NOT NULL, FOREIGN KEY(ACTIVITY_ID) REFERENCES activities (ID))');
 	db.execute('CREATE TABLE IF NOT EXISTS activity_goals (ACTIVITY_ID INTEGER NOT NULL, GOAL TEXT NOT NULL, FOREIGN KEY(ACTIVITY_ID) REFERENCES activities (ID))');
 }
@@ -75,7 +75,7 @@ function getActivityResultSet(resultSet, results)
 		   	  location: resultSet.fieldByName('location'),
 		   	  alert: resultSet.fieldByName('alert'),
 		   	  status: resultSet.fieldByName('status'),
-		   	  end_notes: resultSet.fieldByName('end_notes'),
+		   	  additional_notes: resultSet.fieldByName('additional_notes'),
 		   	  facebook_id: resultSet.fieldByName('facebook_id'),
 	        });
 	resultSet.next();
@@ -179,6 +179,7 @@ function updateActivityLocal(activity_id, column, data)
 {
 	var intRegex = /^\d+$/;
 	if(intRegex.test(data)) {}   //The replacing quotes function throws an error if you use it on an integer
+	else if(!data) { data=''; }
 	else { data = data.replace("'","''"); }
 	
 	var sql = "UPDATE activities SET "+column+"='"+data+"' ";

@@ -66,6 +66,7 @@ function updateEntriesACS()
 		else {
 		}
 	}
+	updateAppointmentsACS();
 }
 
 

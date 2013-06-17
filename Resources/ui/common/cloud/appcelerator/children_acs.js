@@ -69,6 +69,7 @@ function updateChildrenACS()
 		else {
 		}
 	}
+	updateRecordsACS();
 }
 
 

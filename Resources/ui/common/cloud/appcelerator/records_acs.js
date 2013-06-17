@@ -65,6 +65,7 @@ function updateRecordsACS()
 		else {
 		}
 	}
+	updateEntriesACS();
 }
 
 

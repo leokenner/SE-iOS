@@ -1,4 +1,4 @@
-
+var fb = require('facebook');
 
 function loadDatabase()
 {
@@ -31,17 +31,18 @@ function loadDatabase()
 function logout()
 {		
 	updateChildrenACS();
-	updateRecordsACS();
+/*	updateRecordsACS();
 	updateEntriesACS();
 	updateAppointmentsACS();
 	updateActivitiesACS();
-	updateTreatmentsACS();  
+	updateTreatmentsACS(); */  
 
-	if(Ti.Facebook.loggedIn) {
-		Ti.Facebook.logout();
-	}
-	logoutUserACS();
-	
-	Ti.App.fireEvent('logoutClicked');
+	Ti.App.addEventListener('cloudUpdateComplete', function(){ 
+		if(fb.loggedIn) {
+			fb.logout();
+		}
+		logoutUserACS();
+		Ti.App.fireEvent('logoutClicked');
+	});
 	
 }

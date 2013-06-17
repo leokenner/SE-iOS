@@ -82,10 +82,8 @@ function updateUserACS(data)
 		}, function (e) {
 		    if (e.success) {
 		     	Ti.API.info('user successfully updated: /ui/common/cloud/appecelrator/users.js');
-		     	return e;
 		  	} else {
 		     	Ti.API.info('Error: \n' + ((e.error && e.message) || JSON.stringify(e)));
-		     	return null;
 		    }
 	});
 	

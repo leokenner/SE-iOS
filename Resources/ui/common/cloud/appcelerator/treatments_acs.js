@@ -71,7 +71,7 @@ function getTreatmentsACS(query)
 
 
 function updateTreatmentsACS()
-{
+{	
 	var user = getUserLocal(Titanium.App.Properties.getString('user'));
 	user = user[0];
 	
@@ -88,7 +88,7 @@ function updateTreatmentsACS()
 				    fields: treatments[i],
 				}, function (e) {
 				    if (e.success) {
-				 		
+
 				    } else {
 				        alert('Error:\n' + ((e.error && e.message) || JSON.stringify(e)));
 				    }
@@ -97,4 +97,11 @@ function updateTreatmentsACS()
 		else {
 		}
 	}
+	
+if(fb.loggedIn) {
+	fb.logout();
+	logoutUserACS();			
+}
+Ti.App.fireEvent('logoutClicked');	
+	
 }

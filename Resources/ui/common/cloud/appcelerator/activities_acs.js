@@ -20,9 +20,8 @@ function getActivitiesACS(query)
 				    	 continue; 
 				    }
 				    
+				    var times = e.activities[i].times?e.activities[i].times:[];
 				    var goals = e.activities[i].goals?e.activities[i].goals:[];
-				    
-				    activity.facebook_id = activity.facebook_id?'"'+activity.facebook_id+'"':null;
 				    
 				    if(activity.appointment_id != null && activity.appointment_id != undefined) {
 				    	var appointment = getAppointmentByCloudIdLocal(activity.appointment_id);
@@ -30,24 +29,27 @@ function getActivitiesACS(query)
 				    		deleteObjectACS('activities', activity.id);
 				    		continue;
 				    	}
-				    	activity.entry_id = null; 
-						var activity_local_id = insertActivityLocal(activity.entry_id, '"'+appointment[0].id+'"', activity.main_activity, 
-																activity.start_date, activity.end_date, activity.location, activity.frequency);
-					}
-					else {
-						var entry = getEntryByCloudIdLocal(activity.entry_id);
-						if(entry.length==0 || entry[0].id==null || entry[0].id==undefined) {
-							deleteObjectACS('activities', activity.id);
-							continue;
-						}
-						activity.appointment_id = null;
-						var activity_local_id = insertActivityLocal('"'+entry[0].id+'"', activity.appointment_id, activity.main_activity, 
-																activity.start_date, activity.end_date, activity.location, activity.frequency);
-					}
-					updateActivitySuccessStatus(activity_local_id, activity.successful);
-					updateActivityEndNotes(activity_local_id, activity.end_notes);
-					updateActivityFacebookId(activity_local_id, activity.facebook_id);
+				    }
+				    	var entry = getEntryByCloudIdLocal(activity.entry_id);
+						if(entry.length == 0 || entry[0].id==null || entry[0].id==undefined) {
+				    		deleteObjectACS('activities', activity.id);
+				    		continue;
+				    	}
+				    
+				    	appointment_id = '"'+appointment[0].id+'"';	
+						entry_id = '"'+entry[0].id+'"';
+						var activity_local_id = insertActivityLocal(entry_id, appointment_id, activity.main_activity, 
+																activity.start_date, activity.end_date, activity.frequency, activity.interval, activity.alert);
+																
+					updateActivityLocal(activity_local_id, 'status', activity.status);
+					//updateActivityLocal(activity_local_id, 'recommended_by', activity.recommended_by);
+					//updateActivityLocal(activity_local_id, 'diagnosis', activity.diagnosis);
+					updateActivityLocal(activity_local_id, 'additional_notes', activity.additional_notes);
 					updateActivityCloudIdLocal(activity_local_id, activity.id);
+
+					for(var j=0; j < times.length; j++) {
+						insertTimeForActivityLocal(activity_local_id, times[j]);
+					}
 					for(var j=0; j < goals.length; j++) {
 						insertGoalForActivityLocal(activity_local_id, goals[j]);
 					}
@@ -67,14 +69,8 @@ function updateActivitiesACS()
 	var activities = getAllActivitiesLocal();
 		
 	for(var i=0;i < activities.length; i++) {
-		var goals = getGoalsOfActivityLocal(activities[i].id);
-		for(var j=0; j < goals.length; j++) {
-			goals[j].user_id = user.cloud_id;
-		}
-		activities[i].goals = goals;
-		
 		if(activities[i].appointment_id) activities[i].appointment_id = getAppointmentLocal(activities[i].appointment_id)[0].cloud_id;
-		else activities[i].entry_id = getEntryLocal(activities[i].entry_id)[0].cloud_id;
+		activities[i].entry_id = getEntryLocal(activities[i].entry_id)[0].cloud_id;
 		 
 		if(activities[i].cloud_id) { 
 			Cloud.Objects.update({
@@ -93,4 +89,5 @@ function updateActivitiesACS()
 
 		}
 	}
+	updateTreatmentsACS(); 
 }

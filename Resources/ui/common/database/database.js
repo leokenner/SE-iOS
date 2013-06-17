@@ -13,7 +13,6 @@ function initDBLocal()
 	Ti.include('ui/common/database/appointments_db.js');
 	Ti.include('ui/common/database/treatments_db.js');
 	
-	updateTable();
 	
 	db.execute('PRAGMA foreign_keys = ON');
 	
@@ -34,9 +33,9 @@ function initDBLocal()
 function updateTable() 
 {
 	var sql = [];
-	sql[0] = "DROP TABLE IF EXISTS entry_goals";
-/*	sql[1] = "DROP TABLE IF EXISTS incidents";
-	sql[2] = "DROP TABLE IF EXISTS incident_symptoms";
+/*	sql[0] = "DROP TABLE IF EXISTS appointment_categories";
+	sql[1] = "DROP TABLE IF EXISTS treatment_categories";
+	sql[2] = "DROP TABLE IF EXISTS treatment_times";
 	sql[3] = "DROP TABLE IF EXISTS appointment_symptoms";
 	sql[4] = "DROP TABLE IF EXISTS appointment_doctors";
 	sql[5] = "DROP TABLE IF EXISTS appointments";

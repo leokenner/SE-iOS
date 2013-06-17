@@ -87,7 +87,7 @@ function entry_form(input)
 	
 	
 	var table = Ti.UI.createTableView({
-		style: 1,
+		//style: 1,
 		showVerticalScrollIndicator: false,
 		rowHeight: 45,
 	});

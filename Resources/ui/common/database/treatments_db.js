@@ -7,7 +7,6 @@ function initTreatmentsDBLocal()
 	
 	db.execute('CREATE TABLE IF NOT EXISTS treatments (ID INTEGER PRIMARY KEY AUTOINCREMENT, CLOUD_ID TEXT, ENTRY_ID INTEGER, APPOINTMENT_ID INTEGER, START_DATE TEXT NOT NULL,END_DATE TEXT NOT NULL,MEDICATION TEXT, PRESCRIBED_BY TEXT, DIAGNOSIS TEXT, TYPE TEXT, DOSAGE TEXT, FREQUENCY TEXT, INTERVAL TEXT, ALERT TEXT, STATUS TEXT, ADDITIONAL_NOTES TEXT, FACEBOOK_ID TEXT, SUCCESSFUL TEXT, FOREIGN KEY(ENTRY_ID) REFERENCES entries (ID), FOREIGN KEY(APPOINTMENT_ID) REFERENCES appointments (ID))');
 	db.execute('CREATE TABLE IF NOT EXISTS treatment_times (TREATMENT_ID INTEGER NOT NULL, TIME TEXT NOT NULL, FOREIGN KEY(TREATMENT_ID) REFERENCES treatments (ID))');
-	db.execute('CREATE TABLE IF NOT EXISTS treatment_categories (TREATMENT_ID INTEGER NOT NULL, CATEGORY TEXT NOT NULL, FOREIGN KEY(TREATMENT_ID) REFERENCES treatments (ID))');
 	db.execute('CREATE TABLE IF NOT EXISTS treatment_symptoms (TREATMENT_ID INTEGER NOT NULL, SYMPTOM TEXT NOT NULL, FOREIGN KEY(TREATMENT_ID) REFERENCES treatments (ID))');
 	db.execute('CREATE TABLE IF NOT EXISTS treatment_sideEffects (TREATMENT_ID INTEGER NOT NULL, SIDE_EFFECT TEXT NOT NULL, FOREIGN KEY(TREATMENT_ID) REFERENCES treatments (ID))');
 	
@@ -63,16 +62,6 @@ function insertTimeForTreatmentLocal(treatment_id, time)
 	return db.lastInsertRowId;
 }
 
-function insertCategoryForTreatmentLocal(treatment_id, category)
-{
-	var sql = "INSERT INTO treatment_categories (treatment_id, category) VALUES (";
-	sql = sql + "'" + treatment_id + "', ";
-	sql = sql + "'" + category.replace("'", "''") + "')"; 
-	db.execute(sql); 
-	
-	return db.lastInsertRowId;
-}
-
 
 function insertSymptomForTreatmentLocal(treatment_id, symptom)
 {
@@ -123,7 +112,6 @@ function getTreatmentResultSet(resultSet, results)
     
     for(var i=0; i < results.length; i++) {
     	results[i].times = getTimesOfTreatmentLocal(results[i].id);
-    	results[i].categories = getCategoriesOfTreatmentLocal(results[i].id);
     	results[i].symptoms = getSymptomsOfTreatmentLocal(results[i].id);
     	results[i].sideEffects = getSideEffectsOfTreatmentLocal(results[i].id);
     }	
@@ -199,21 +187,6 @@ function getTimesOfTreatmentLocal(treatment_id)
 	return results;
 }
 
-function getCategoriesOfTreatmentLocal(treatment_id) 
-{
-	var sql = "SELECT * FROM treatment_categories WHERE TREATMENT_ID='"+treatment_id+"'";
-	
-	var results = [];
-	var resultSet = db.execute(sql);
-    while (resultSet.isValidRow()) { 
-    	results.push(resultSet.fieldByName('category'));
-		resultSet.next();
-    }
-    resultSet.close();		
-
-	return results;
-}
-
 
 function getSymptomsOfTreatmentLocal(treatment_id) 
 {
@@ -277,7 +250,6 @@ function deleteTreatmentsTableLocal()
 function deleteTreatmentLocal(treatment_id)
 {
 	deleteTimesForTreatmentLocal(treatment.id);
-	deleteCategoriesForTreatmentLocal(treatment_id);
 	deleteSymptomsForTreatmentLocal(treatment_id);
 	deleteSideEffectsForTreatmentLocal(treatment_id);
 	
@@ -288,12 +260,6 @@ function deleteTreatmentLocal(treatment_id)
 function deleteTimesForTreatmentLocal(treatment_id)
 {
 	var sql = "DELETE FROM treatment_times WHERE TREATMENT_ID = '"+treatment_id+"'";
-	db.execute(sql);
-}
-
-function deleteCategoriesForTreatmentLocal(treatment_id)
-{
-	var sql = "DELETE FROM treatment_categories WHERE TREATMENT_ID = '"+treatment_id+"'";
 	db.execute(sql);
 }
 
@@ -312,7 +278,6 @@ function deleteSideEffectsForTreatmentLocal(treatment_id)
 function deleteAllTreatments()
 {
 	deleteAllTreatmentTimes();
-	deleteAllTreatmentCategories();
 	deleteAllTreatmentSymptoms();
 	deleteAllTreatmentSideEffects();
 	
@@ -322,11 +287,6 @@ function deleteAllTreatments()
 
 function deleteAllTreatmentTimes() {
 	var sql = "DELETE FROM treatment_times";
-	db.execute(sql);
-}
-
-function deleteAllTreatmentCategories() {
-	var sql = "DELETE FROM treatment_categories";
 	db.execute(sql);
 }
 
