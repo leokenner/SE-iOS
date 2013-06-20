@@ -49,18 +49,18 @@ function entryView(input)
 	view.add(status);
 	
 	view.addEventListener('click', function() {
-		var entry = require('ui/common/forms/entry_form');
-		var entryWindow = new entry(input);
-		entryWindow.open();
+		var record = require('ui/common/views/record');
+		var recordWindow = new record({ id: input.record_id });
+		recordWindow.open();
 		
-		entryWindow.addEventListener('close', function() {
+	/*	entryWindow.addEventListener('close', function() {
 			if(entryWindow.result != null)
 			{
 				input = entryWindow.result;
 				dateTime.text = input.date?input.date:'';
 				main_entry.text = input.main_entry;	
 			}
-		});
+	}); */
 	});
 	
 	status.addEventListener('click', function() {

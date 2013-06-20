@@ -5,7 +5,7 @@
  */
 
 
-function treatment(input) {
+function treatment(input, navGroup) {
 	Ti.include('ui/common/helpers/dateTime.js');
 	Ti.include('ui/common/helpers/strings.js');
 	Ti.include('ui/common/database/database.js');
@@ -13,29 +13,29 @@ function treatment(input) {
 //var navGroupWindow = input.navGroupWindow;
 
 var treatment = {
-		id: input.treatment.id?input.treatment.id:null,
-		cloud_id: input.treatment.cloud_id?input.treatment.cloud_id:null,
-		entry_id: input.treatment.entry_id?input.treatment.entry_id:null,
-		appointment_id: input.treatment.appointment_id?input.treatment.appointment_id:null,
-		start_date: input.treatment.start_date?input.treatment.start_date:timeFormatted(new Date).date,
-		end_date: input.treatment.end_date?input.treatment.end_date:timeFormatted(new Date).date,
-		medication: input.treatment.medication?input.treatment.medication:null,
-		prescribed_by: input.treatment.prescribed_by?input.treatment.prescribed_by:null,
-		diagnosis: input.treatment.diagnosis?input.treatment.diagnosis:null,
-		type: input.treatment.type?input.treatment.type:'Solid',
-		dosage: input.treatment.dosage?input.treatment.dosage:null,
-		frequency: input.treatment.frequency?input.treatment.frequency:0,
-		interval: input.treatment.interval?input.treatment.interval:'every day',
-		alert: input.treatment.alert?input.treatment.alert:'Time of event',
-		times: input.treatment.times?input.treatment.times:[],
-		localNotifications: input.treatment.local_notifications?input.treatment.local_notifications:0,
-		categories: input.treatment.categories?input.treatment.categories:[],
-		symptoms: input.treatment.symptoms?input.treatment.symptoms:[],
-		sideEffects: input.treatment.sideEffects?input.treatment.sideEffects:[],
-		additional_notes: input.treatment.additional_notes?input.treatment.additional_notes:'No additional notes',
-		status: input.treatment.status?input.treatment.status:'Scheduled',
-		successful: input.treatment.successful?input.treatment.successful:'Yes/No?',
-		facebook_id: input.treatment.facebook_id?input.treatment.facebook_id:null,
+		id: input.id?input.id:null,
+		cloud_id: input.cloud_id?input.cloud_id:null,
+		entry_id: input.entry_id?input.entry_id:null,
+		appointment_id: input.appointment_id?input.appointment_id:null,
+		start_date: input.start_date?input.start_date:timeFormatted(new Date).date,
+		end_date: input.end_date?input.end_date:timeFormatted(new Date).date,
+		medication: input.medication?input.medication:null,
+		prescribed_by: input.prescribed_by?input.prescribed_by:null,
+		diagnosis: input.diagnosis?input.diagnosis:null,
+		type: input.type?input.type:'Solid',
+		dosage: input.dosage?input.dosage:null,
+		frequency: input.frequency?input.frequency:0,
+		interval: input.interval?input.interval:'every day',
+		alert: input.alert?input.alert:'Time of event',
+		times: input.times?input.times:[],
+		localNotifications: input.local_notifications?input.local_notifications:0,
+		categories: input.categories?input.categories:[],
+		symptoms: input.symptoms?input.symptoms:[],
+		sideEffects: input.sideEffects?input.sideEffects:[],
+		additional_notes: input.additional_notes?input.additional_notes:'No additional notes',
+		status: input.status?input.status:'Scheduled',
+		successful: input.successful?input.successful:'Yes/No?',
+		facebook_id: input.facebook_id?input.facebook_id:null,
 	}
 	
 	addRemoveTimes(treatment.frequency - treatment.times.length); 
@@ -51,9 +51,17 @@ var window = Titanium.UI.createWindow({
 });
 window.result = null;
 
-var navGroupWindow = require('ui/handheld/ApplicationNavGroup');
-	navGroupWindow = new navGroupWindow(window);
-	navGroupWindow.result = null;
+if(navGroup == undefined) { 
+	var navGroupWindow = require('ui/handheld/ApplicationNavGroup');
+		navGroupWindow = new navGroupWindow(window);
+		navGroupWindow.result = null;
+}
+
+function getNavGroup()
+{
+	if(navGroupWindow) return (navGroupWindow.getChildren())[0];
+	else return navGroup; 
+}
 
 if(treatment.id) { var cancel_btn = Titanium.UI.createButton({ systemButton: Ti.UI.iPhone.SystemButton.TRASH }); }
 else { var cancel_btn = Titanium.UI.createButton({ systemButton: Ti.UI.iPhone.SystemButton.CANCEL }); }
@@ -66,7 +74,8 @@ window.rightNavButton = save_btn;
 cancel_btn.addEventListener('click', function() {
 	//navGroupWindow.getChildren()[0].close(window);
 	if(treatment.id == null) {
-		navGroupWindow.close();
+		if(navGroupWindow) navGroupWindow.close();
+      	else navGroup.close(window);
 		return;
 	}
 	
@@ -86,8 +95,8 @@ cancel_btn.addEventListener('click', function() {
      		  	treatment.cloud_id = treatment.cloud_id?treatment.cloud_id:getTreatmentLocal(treatment.id)[0].cloud_id;
 				deleteTreatmentLocal(treatment.id);			
 				deleteObjectACS('treatments', treatment.cloud_id);
-				navGroupWindow.result = -1;
-      			navGroupWindow.close();
+      			if(navGroupWindow) navGroupWindow.close();
+      			else navGroup.close(window);
       			break;
 
       		 case 1:       			
@@ -100,92 +109,6 @@ cancel_btn.addEventListener('click', function() {
 
 
 save_btn.addEventListener('click', function() {
-/*	if(table.scrollable == false) { return; }
-
-	var patientName_test = false, medication_test = false, dosage_test = false, frequency_test = false, symptoms_test=false, date_test = false;
-	
-	if(!patient.value) { alert('This treatment must be assigned to a patient'); }
-	else { patientName_test=true; }
-	if(!isValidDate(start_date.text)) { alert('Your start date seems to be invalid. Please recheck'); }
-	else if(!isValidDate(end_date.text)) { alert('Your end date seems to be invalid. Please recheck'); }
-	else if(!isStartBeforeEnd(start_date.text,end_date.text)) 
-	{ alert('Your end date seems to be before your start date. Please correct'); }
-	else { date_test = true; }
-	if(medication.value.length >= 3) { medication_test=true; }
-	else { alert('The listed medication seems to be invalid. It should be at least 3 characters'); }
-	if(dosage.value.length >= 1) { dosage_test=true; }
-	else { alert('You have not entered a dosage. Kindly recheck'); }
-	if(frequency.value.length >= 1) { frequency_test=true; }
-	else { alert('Place enter the frequency of the medication'); }
-	if(symptoms_field.value == null || symptoms_field.value == '') {
-		alert('You must list at least one symptom');
-	}
-	else { symptoms_test=true; }
-	
-	if(patientName_test && medication_test && dosage_test && frequency_test && symptoms_test && date_test)
-	{
-			if(treatment.id == null) {
-				if(!Titanium.Network.online) {
-					alert('Error:\n You are not connected to the internet. Cannot create new treatment');
-					return;
-				}
-				
-				
-				if(treatment.appointment_id != null) {
-					var appointment_id = '"'+treatment.appointment_id+'"';
-					treatment.id = insertTreatmentLocal(null,appointment_id,null, start_date.text,end_date.text,medication.value,
-														prescribed_by.value, diagnosis.value, type.text, dosage.value,frequency.value, interval.text);
-				}
-				else {
-					var entry_id = '"'+treatment.entry_id+'"'; 
-					treatment.id = insertTreatmentLocal(entry_id,null,null, start_date.text,end_date.text,medication.value,
-														prescribed_by.value, diagnosis.value, type.text, dosage.value,frequency.value, interval.text);
-				}
-				createObjectACS('treatments', { id: treatment.id, start_date: start_date.text, end_date: end_date.text, 
-												medication: medication.value, prescribed_by: prescribed_by.value, diagnosis: diagnosis.value,
-												type: type.text, dosage: dosage.value, frequency: frequency.text, interval: interval.text });
-
-			}
-			else {
-				updateTreatmentLocal(treatment.id,start_date.text,end_date.text,medication.value,prescribed_by, diagnosis, type, 
-										dosage.value,frequency.text, interval.text);
-			}
-			if(additionalNotes_field.value) {
-				updateTreatmentNotes(treatment.id, additionalNotes_field.value);
-			}
-			deleteSymptomsForTreatmentLocal(treatment.id);
-			deleteSideEffectsForTreatmentLocal(treatment.id);
-			treatment.symptoms.splice(0, treatment.symptoms.length);
-			treatment.sideEffects.splice(0, treatment.sideEffects.length);
-			
-			if(symptoms_field.value != null) {
-				if(symptoms_field.value.length > 1) {
-					var final_symptoms = symptoms_field.value.split(',');
-					for(var i=0;i < final_symptoms.length;i++) {
-						if(final_symptoms[i].length < 2) continue;
-						
-						insertSymptomForTreatmentLocal(treatment.id,final_symptoms[i]);
-						treatment.symptoms.push(final_symptoms[i]);
-					}
-				}
-			}
-			
-			if(sideEffects_field.value != null) {
-				if(sideEffects_field.value.length > 1) {
-					var final_sideEffects = sideEffects_field.value.split(',');
-					for(var i=0;i < final_sideEffects.length;i++) {
-						if(final_sideEffects[i].length < 2) continue;
-						
-						insertSideEffectForTreatmentLocal(treatment.id,final_sideEffects[i]);
-						treatment.sideEffects.push(final_sideEffects[i]);
-					}
-				}
-			}
-			
-			
-			updateTreatmentStatus(treatment.id,sectionStatus.rows[0].title);
-			//var record_incident_id = getAppointmentLocal(treatment.appointment_id)[0].incident_id;
-			updateRecordTimesForEntryLocal(treatment.entry_id,timeFormatted(new Date()).date,timeFormatted(new Date()).time); */
 			
 			if(treatment.id != null) {
 				var all_saved=true;
@@ -204,7 +127,8 @@ save_btn.addEventListener('click', function() {
 						
 						  			 switch (g.index) {
 						     		 case 0:
-						      			navGroupWindow.close();
+						      			if(navGroupWindow) navGroupWindow.close();
+      									else navGroup.close(window);
 						      			return;
 						
 						      		 case 1:       			
@@ -216,7 +140,8 @@ save_btn.addEventListener('click', function() {
 						}
 					}
 					if(all_saved) { 
-						navGroupWindow.close(); 
+						if(navGroupWindow) navGroupWindow.close();
+      					else navGroup.close(window);
 						return;
 					} 
 			}
@@ -241,8 +166,8 @@ save_btn.addEventListener('click', function() {
 				treatment.status = status.text;
 				window.result = treatment;
 				navGroupWindow.result = treatment;
-				//navGroupWindow.getChildren()[0].close(window);
-				navGroupWindow.close();
+				if(navGroupWindow) navGroupWindow.close();
+      			else navGroup.close(window);
 			}
 	
 });
@@ -253,7 +178,6 @@ var table = Titanium.UI.createTableView({
 	rowHeight: 45,
 	//separatorStyle: Titanium.UI.iPhone.TableViewSeparatorStyle.NONE,
 	//separatorColor: 'transparent',
-	//style: 1
 });
 
 var sectionStatus = Ti.UI.createTableViewSection({ headerTitle: 'Status (tap to change)', });
@@ -273,7 +197,7 @@ if(treatment.status === 'Completed') {
 
 if(treatment.id) {
 	sectionStatus.add(Ti.UI.createTableViewRow({ backgroundColor: '#CCC', })); 
-	sectionStatus.rows[1].add(Ti.UI.createLabel({ text: 'No Change Made', textAlign: 'center', font: { fontSize: 15, }, width: '80%', }));
+	sectionStatus.rows[sectionStatus.rowCount-1].add(Ti.UI.createLabel({ text: 'No Change Made', textAlign: 'center', font: { fontSize: 15, }, width: '80%', }));
 }
 
 var sectionPatient = Ti.UI.createTableViewSection({ headerTitle: 'Patient (required)', });
@@ -440,6 +364,10 @@ var sectionShare = Ti.UI.createTableViewSection();
 	});
 
 //Rules for what to display as the status
+if(treatment.status === 'Completed' || treatment.status === 'Cancelled') {
+	blurSection(sectionDetails);
+}
+
 if(treatment.id) {
 	if(!isValidDate(treatment.end_date) && status.text === 'Scheduled') {
 		status.text = "Complete";
@@ -606,20 +534,26 @@ function changeStatusAndUnblur()
 }
 
 
-function saveStatus()
+function saveStatus(row_index)
 {
 	updateTreatmentLocal(treatment.id, 'status', status.text);
 	treatment.status = status.text;
-	if(sectionStatus.rows[sectionStatus.rowCount-1].backgroundColor == 'blue')	{
-		sectionStatus.rows[sectionStatus.rowCount-1].backgroundColor = '#CCC';
-		sectionStatus.rows[sectionStatus.rowCount-1].children[0].text = 'Changes Saved!';
+	
+	if(row_index == undefined) row_index = sectionStatus.rowCount-1;
+	
+	if(sectionStatus.rows[row_index].backgroundColor == 'blue')	{
+		sectionStatus.rows[row_index].backgroundColor = '#CCC';
+		sectionStatus.rows[row_index].children[0].text = 'Changes Saved!';
 	}
 	return true;
 }
 
-function saveAdditionalNotes()
+function saveAdditionalNotes(row_index)
 {
-	updateTreatmentLocal(activity.id, 'additional_notes', additional_notes.text);
+	updateTreatmentLocal(treatment.id, 'additional_notes', additional_notes.text);
+	treatment.additional_notes = additional_notes.text;
+	
+	if(row_index == undefined) row_index = sectionStatus.rowCount-1;
 	
 	if(sectionStatus.rows[row_index].backgroundColor == 'blue') {
 		sectionStatus.rows[row_index].backgroundColor = '#CCC';
@@ -628,7 +562,7 @@ function saveAdditionalNotes()
 	return true;
 }
 
-function saveStatusData()
+function saveStatusData(row_index)
 {
 	if(!beforeSaving()) return;
 	saveStatus(row_index);
@@ -704,12 +638,11 @@ rowAdditionalNotes.addEventListener('click', function() {
 		var additional_notes_text = '';
 	}
 	else {
-		additional_notes_text = additional_notes.text;
+		var additional_notes_text = additional_notes.text;
 	}
 	additional_notes_page = new additional_notes_page('Additional Notes', "Make any additional notes regarding the outcome of this treatment "+
 													"such as unexpected side effects.", additional_notes_text);
-	var children = navGroupWindow.getChildren();
-	children[0].open(additional_notes_page);
+	(getNavGroup()).open(additional_notes_page);
 													
 	additional_notes_page.addEventListener('close', function() {
 		if(!additional_notes_page.result) {
@@ -794,9 +727,9 @@ function saveTreatmentDetails()
 		insertTimeForTreatmentLocal(treatment.id, treatment.times[i]);
 	}
 	
-	treatment.medication = medication.text;
-	treatment.prescribed_by = prescribed_by.text;
-	treatment.diagnosis = diagnosis.text;
+	treatment.medication = medication.value;
+	//treatment.prescribed_by = prescribed_by.text;
+	treatment.diagnosis = diagnosis.value;
 	treatment.start_date = start_date.text;
 	treatment.end_date = end_date.text;	
 	treatment.type = type.text;
@@ -850,10 +783,7 @@ if(Titanium.Platform.osname == 'ipad') modalPicker.show({ view: date, });
 		if(modalPicker.result) { 
 			var newDate = modalPicker.result.toDateString();
 			date.text = newDate;
-			if(sectionSolidLiquid.rows[sectionSolidLiquid.rowCount-1].backgroundColor == '#CCC') {
-				sectionSolidLiquid.rows[sectionSolidLiquid.rowCount-1].backgroundColor = 'blue';
-				sectionSolidLiquid.rows[sectionSolidLiquid.rowCount-1].children[0].text = 'Save Changes';
-			}
+			activateSaveButton();
 		}
 	window.setTouchEnabled(true);
 	if(window.leftNavButton != null) { 
@@ -888,8 +818,7 @@ if(isBlurred(e)) {
 }		
 	var symptoms_page = require('ui/common/helpers/items');
 	symptoms_page = new symptoms_page(treatment.symptoms, 'Symptoms');
-	var children = navGroupWindow.getChildren();
-	children[0].open(symptoms_page);
+	(getNavGroup()).open(symptoms_page);
 	
 	symptoms_page.addEventListener('close', function() {
 		treatment.symptoms = symptoms_page.result;
@@ -1146,8 +1075,7 @@ if(this.color == '#CCC') {
 	
 	var alerts_page = require('ui/common/helpers/alerts');
 	alerts_page = new alerts_page(treatment.times, alert_text.text);
-	var children = navGroupWindow.getChildren();
-	children[0].open(alerts_page);
+	(getNavGroup()).open(alerts_page);
 	
 	alerts_page.addEventListener('close', function() {
 		treatment.times = alerts_page.result;
@@ -1174,7 +1102,8 @@ sectionDetails.addEventListener('click', function(e) {
 });
 
 
-	return navGroupWindow;
+if(navGroup == undefined) { navGroup = (navGroupWindow.getChildren())[0]; return navGroupWindow; }
+else return window;
 };
 
 module.exports = treatment;

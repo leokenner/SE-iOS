@@ -111,6 +111,16 @@ function getActivitiesForEntryLocal(entry_id)
 	return getActivityResultSet(resultSet, results);
 }
 
+function getOnlyActivitiesForEntryLocal(entry_id) 
+{ 
+	var sql = "SELECT * FROM activities WHERE ENTRY_ID='"+entry_id+"' AND APPOINTMENT_ID=null"; 
+	
+	var results = [];
+	var resultSet = db.execute(sql);	
+
+	return getActivityResultSet(resultSet, results);
+}
+
 
 function getActivityByCloudIdLocal(cloud_id) 
 { 

@@ -25,10 +25,9 @@ function getEntriesACS(query /*, record_local_id, latest_date, latest_time */)
 				    	continue;
 				    }			    
 				    
-					var entry_local_id = insertEntryLocal(record.id, entry.main_entry, entry.date, entry.location);
+					var entry_local_id = insertEntryLocal(record.id, entry.main_entry, entry.date, entry.time);
 					updateEntryCloudIdLocal(entry_local_id, entry.id);
 					updateRecordLocal(record.id, entry_local_id, 'entry', record.latest_date, record.latest_time);
-					//getAppointmentsACS({ user_id: query.user_id, entry_id: entry.id, }, entry_local_id);
 					
 				}
 				getAppointmentsACS({ user_id: query.user_id, });
@@ -48,7 +47,7 @@ function updateEntriesACS()
 	for(var i=0;i < entries.length; i++) {	
 		
 		//entries[i].local_id = entries[i].id;
-		entries[i].record_id = getRecordByIdLocal(entries[i].record_id)[0].cloud_id;
+		entries[i].record_id = getRecordLocal(entries[i].record_id)[0].cloud_id;
 		 
 		if(entries[i].cloud_id) {
 			Cloud.Objects.update({

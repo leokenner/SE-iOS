@@ -1,7 +1,7 @@
 
 
 
-function appointment(input)
+function appointment(input, navGroup)
 {
 	Ti.include('ui/common/helpers/dateTime.js');
 	Ti.include('ui/common/helpers/strings.js');
@@ -51,9 +51,18 @@ function appointment(input)
   		height: 'auto'
 	});
 	
-	var navGroupWindow = require('ui/handheld/ApplicationNavGroup');
-		navGroupWindow = new navGroupWindow(window);
-		navGroupWindow.result = null;
+	if(navGroup == undefined) { 
+		var navGroupWindow = require('ui/handheld/ApplicationNavGroup');
+			navGroupWindow = new navGroupWindow(window);
+			navGroup = (navGroupWindow.getChildren())[0];
+			navGroupWindow.result = null;
+	}
+	
+	function getNavGroup()
+	{
+		if(navGroupWindow) return (navGroupWindow.getChildren())[0];
+		else return navGroup; 
+	}
 	
 	var warning = Ti.UI.createView({
 	width: '100%',
@@ -76,7 +85,8 @@ function appointment(input)
 	
 	cancel_btn.addEventListener('click', function() {
 		if(appointment.id == null) {
-			navGroupWindow.close();
+			if(navGroupWindow) navGroupWindow.close();
+			else window.close();
 			return;
 		}
 		var confirm = Titanium.UI.createAlertDialog({ title: 'Are you sure you want to delete the record of this appointment?', 
@@ -95,7 +105,8 @@ function appointment(input)
 				deleteAppointmentLocal(appointment.id);			
 				deleteObjectACS('appointments', appointment.cloud_id);
 				navGroupWindow.result = -1;
-      			navGroupWindow.close();
+      			if(navGroupWindow) navGroupWindow.close();
+      			else navGroup.close(window);
       			break;
 
       		 case 1:       			
@@ -127,7 +138,8 @@ function appointment(input)
 							
 						  			 switch (g.index) {
 						     		 case 0:
-						      			navGroupWindow.close();
+						      			if(navGroupWindow) navGroupWindow.close();
+      									else navGroup.close(window);
 						      			return;
 							
 						      		 case 1:       			
@@ -139,7 +151,8 @@ function appointment(input)
 						
 					}
 					if(all_saved) { 
-						navGroupWindow.close(); 
+						if(navGroupWindow) navGroupWindow.close();
+      					else navGroup.close(window); 
 						return;
 					} 
 			}
@@ -189,7 +202,7 @@ if(appointment.id) {
 	sectionStatus.rows[sectionStatus.rowCount-1].add(Ti.UI.createLabel({ text: 'No changes made', textAlign: 'center', font: { fontSize: 15, }, }));
 }
 
-var rowNextActions = Ti.UI.createTableViewRow({ height: 60, hasChild: true, });
+var rowNextActions = Ti.UI.createTableViewRow({ height: 80, hasChild: true, });
 var nextActions_title = Titanium.UI.createLabel({ text: 'Recommended activities / prescribed treatments', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
 rowNextActions.add(nextActions_title);
 var activities = getActivitiesForAppointmentLocal(appointment.id);
@@ -260,11 +273,12 @@ if(appointment.id) {
 	sectionDetails.rows[sectionDetails.rowCount-1].add(Ti.UI.createLabel({ text: 'No changes made', textAlign: 'center', font: { fontSize: 15, }, }));
 }
 
+
+
+//Rules for what to display as the status
 if(appointment.status === 'Completed' || appointment.status === 'Cancelled') {
 	blurSection(sectionDetails);
 }
-
-//Rules for what to display as the status
 
 //If the date is in the past, its been missed
 if(appointment.id && !isValidDateTime(appointment.date+' '+appointment.time) && appointment.status === 'Scheduled') {
@@ -425,6 +439,7 @@ function saveStatus(row_index)
 {
 	updateAppointmentLocal(appointment.id, 'status', status.text);
 	
+	if(row_index == undefined) row_index = sectionStatus.rowCount-1;
 	if(sectionStatus.rows[row_index].backgroundColor == 'blue')	{
 		sectionStatus.rows[row_index].backgroundColor = '#CCC';
 		sectionStatus.rows[row_index].children[0].text = 'Changes Saved!';
@@ -436,6 +451,7 @@ function saveAdditionalNotes(row_index)
 	updateAppointmentLocal(appointment.id, 'additional_notes', additional_notes.text);
 	sectionStatus.rows[row_index].children[0].text = 'Changes Saved';
 	
+	if(row_index == undefined) row_index - sectionStatus.rowCount-1;
 	if(!sectionStatus.rows[row_index+1] && status.text === 'Completed') {
 		table.insertRowAfter(row_index, rowNextActions);
 	}
@@ -528,12 +544,12 @@ rowAdditionalNotes.addEventListener('click', function() {
 		var additional_notes_text = '';
 	}
 	else {
-		additional_notes_text = additional_notes.text;
+		var additional_notes_text = additional_notes.text;
 	}
 	additional_notes_page = new additional_notes_page('Additional Notes', "Make any additional notes regarding the outcome of this appointment, such as any diagnosis that was given", 
 									additional_notes_text);
-	var children = navGroupWindow.getChildren();
-	children[0].open(additional_notes_page);
+									
+	(getNavGroup()).open(additional_notes_page);
 													
 	additional_notes_page.addEventListener('close', function() {
 		if(additional_notes.text != additional_notes_page.result) { 
@@ -556,28 +572,24 @@ rowNextActions.addEventListener('click', function() {
 		saveStatus(2);
 		saveAdditionalNotes(2);
 	}
-	var actions_page = require('ui/common/forms/prescription_form');
+	var actions_page = require('ui/common/views/actions');
 		var actions = {
 			appointment_id: appointment.id,
 			entry_id: appointment.entry_id,
-			doctor_name: name.value,
 		}
-		actions_page = new actions_page(actions);
+		actions_page = new actions_page(actions, navGroup);
 	
-	var children = navGroupWindow.getChildren();
-	children[0].open(actions_page); //open the prescription window in the navgroup
+	(getNavGroup()).open(actions_page); //open the prescription window in the navgroup
 	
-	actions_page.addEventListener('close', function() {
-		if(actions_page.result != null) { 
-			appointment.activities = actions_page.result.activities;
-			appointment.treatments = actions_page.result.treatments;
-		}
+	actions_page.addEventListener('close', function() { 
+		appointment.activities = getActivitiesForAppointmentLocal(appointment.id);
+		appointment.treatments = getTreatmentsForAppointmentLocal(appointment.id);
 	});
 });
 
 function validateDateTime()
 {
-	if(!isValidDateTime(dateTime.text) && status.text == 'Scheduled') { 
+	if((new Date(dateTime.text) < new Date()) && status.text == 'Scheduled') { 
 		alert('You may have entered a date that has already passed. Kindly recheck'); 
 		return false;
 	}
@@ -794,8 +806,7 @@ if(isBlurred(e)) {
 	
 	var symptoms_page = require('ui/common/helpers/items');
 	symptoms_page = new symptoms_page(appointment.symptoms, 'Symptoms');
-	var children = navGroupWindow.getChildren();
-	children[0].open(symptoms_page);
+	(getNavGroup()).open(symptoms_page);
 	
 	symptoms_page.addEventListener('close', function() {
 		if(areArraysSame(appointment.symptoms, symptoms_page.result)) return; 
@@ -905,7 +916,8 @@ sectionDetails.addEventListener('click', function(e) {
 });
 
 
-return navGroupWindow;
+if(navGroupWindow) return navGroupWindow;
+else return window;
 
 
 }

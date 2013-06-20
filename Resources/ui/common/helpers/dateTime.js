@@ -54,9 +54,11 @@ function isValidDate(apt_date)
 var date = new Date(apt_date);
 var current = new Date();	
 
-if(date.getFullYear() >= current.getFullYear()) { return true; }
+if(date.getFullYear() > current.getFullYear()) { return true; }
+else if(date.getFullYear() < current.getFullYear()) { return false; }
 else {
-	if(date.getMonth() >= current.getMonth()) { return true; }
+	if(date.getMonth() > current.getMonth()) { return true; }
+	else if(date.getMonth() < current.getMonth()) { return false; }
 	else {
 		if(date.getDate() >= current.getDate()) { return true; }
 		else {
@@ -73,9 +75,11 @@ function isStartBeforeEnd(start_date,end_date)
 	if(start_date == null) { var start = new Date(); }
 	else { var start = new Date(start_date); }	
 
-if(end.getFullYear() >= start.getFullYear()) { return true; }
+if(end.getFullYear() > start.getFullYear()) { return true; }
+else if(end.getFullYear() < start.getFullYear()) { return false; }
 else {
-	if(end.getMonth() >= start.getMonth()) { return true; }
+	if(end.getMonth() > start.getMonth()) { return true; }
+	else if(end.getMonth() < start.getMonth()) { return false; }
 	else {
 		if(end.getDate() >= start.getDate()) { return true; }
 		else {

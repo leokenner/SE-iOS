@@ -108,7 +108,7 @@ function scheduleAppointmentLocalNotifications(appointment, child)
 
 function scheduleActivityLocalNotifications(activity, child)
 {
-	var days = Math.floor(( Date.parse(activity.end_date) - Date.parse(activity.start_date) ) / 86400000);
+	var days = Math.floor(( Date.parse(activity.end_date) - Date.parse(activity.start_date) ) / 86400000); //1000*60*60*24
 	if(activity.alert === 'Time of event') var advance = 0;
 	else { var advance = activity.alert.split(' ')[0]; }
 	

@@ -102,7 +102,7 @@ function getRecordsForChildLocal(child_id)
 	return results;
 }
 
-function getRecordByIdLocal(id) 
+function getRecordLocal(id) 
 { 
 	var sql = "SELECT * FROM records WHERE ID='"+id+"'";   
 	
@@ -148,6 +148,11 @@ function getRecordByCloudIdLocal(cloud_id)
 	return results;
 }
 
+function deleteRecordLocal(id)
+{
+	var sql = "DELETE FROM records WHERE ID='"+id+ "'";
+	db.execute(sql);
+}
 
 function deleteRecordsByCloudIdLocal(cloud_id)
 {

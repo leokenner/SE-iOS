@@ -140,6 +140,16 @@ function getTreatmentsForEntryLocal(entry_id)
 	return getTreatmentResultSet(resultSet, results);
 }
 
+function getOnlyTreatmentsForEntryLocal(entry_id) 
+{ 
+	var sql = "SELECT * FROM treatments WHERE ENTRY_ID='"+entry_id+"' AND APPOINTMENT_ID=null"; 
+	
+	var results = [];
+	var resultSet = db.execute(sql);	
+
+	return getTreatmentResultSet(resultSet, results);
+}
+
 function getTreatmentByCloudIdLocal(cloud_id) 
 { 
 	var sql = "SELECT * FROM treatments WHERE CLOUD_ID='"+cloud_id+"'"; 

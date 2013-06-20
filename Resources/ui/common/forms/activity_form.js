@@ -2,7 +2,7 @@
 
 
 
-function activity(input)
+function activity(input, navGroup)
 {
 	Ti.include('ui/common/helpers/dateTime.js');
 	Ti.include('ui/common/helpers/strings.js');
@@ -11,25 +11,25 @@ function activity(input)
 //var navGroupWindow = input.navGroupWindow;
 
 var activity = {
-		id: input.activity.id?input.activity.id:null,
-		cloud_id: input.activity.cloud_id?input.activity.cloud_id:null,
-		entry_id: input.activity.entry_id?input.activity.entry_id:null,
-		appointment_id: input.activity.appointment_id?input.activity.appointment_id:null,		
-		recommended_by: input.activity.recommended_by?input.activity.recommended_by:null,
-		main_activity: input.activity.main_activity?input.activity.main_activity:'No activity',
-		start_date: input.activity.start_date?input.activity.start_date:timeFormatted(new Date).date,
-		end_date: input.activity.end_date?input.activity.end_date:timeFormatted(new Date).date,
-		frequency: input.activity.frequency?input.activity.frequency:0,
-		interval: input.activity.interval?input.activity.interval:'every day',
-		alert: input.activity.alert?input.activity.alert:'Time of event',
-		times: input.activity.times?input.activity.times:[],
-		localNotifications: input.activity.local_notifications?input.activity.local_notifications:0,
-		location: input.activity.location?input.activity.location:null,
-		goals: input.activity.goals?input.activity.goals:[],
-		additional_notes: input.activity.additional_notes?input.activity.additional_notes:'No observations',
-		status: input.activity.status?input.activity.status:'Scheduled',
-		successful: input.activity.successful?input.activity.successful:'Yes/No?',
-		facebook_id: input.activity.facebook_id?input.activity.facebook_id:null,
+		id: input.id?input.id:null,
+		cloud_id: input.cloud_id?input.cloud_id:null,
+		entry_id: input.entry_id?input.entry_id:null,
+		appointment_id: input.appointment_id?input.appointment_id:null,		
+		recommended_by: input.recommended_by?input.recommended_by:null,
+		main_activity: input.main_activity?input.main_activity:'No activity',
+		start_date: input.start_date?input.start_date:timeFormatted(new Date).date,
+		end_date: input.end_date?input.end_date:timeFormatted(new Date).date,
+		frequency: input.frequency?input.frequency:0,
+		interval: input.interval?input.interval:'every day',
+		alert: input.alert?input.alert:'Time of event',
+		times: input.times?input.times:[],
+		localNotifications: input.local_notifications?input.local_notifications:0,
+		location: input.location?input.location:null,
+		goals: input.goals?input.goals:[],
+		additional_notes: input.additional_notes?input.additional_notes:'No observations',
+		status: input.status?input.status:'Scheduled',
+		successful: input.successful?input.successful:'Yes/No?',
+		facebook_id: input.facebook_id?input.facebook_id:null,
 	}
 	
 	var share_background_color = activity.facebook_id?'#CCC':
@@ -42,9 +42,17 @@ var window = Titanium.UI.createWindow({
 });
 window.result = null;
 
-var navGroupWindow = require('ui/handheld/ApplicationNavGroup');
-	navGroupWindow = new navGroupWindow(window);
-	navGroupWindow.result = null;
+if(navGroup == undefined) { 
+	var navGroupWindow = require('ui/handheld/ApplicationNavGroup');
+		navGroupWindow = new navGroupWindow(window);
+		navGroupWindow.result = null;
+}
+
+function getNavGroup()
+{
+	if(navGroupWindow) return (navGroupWindow.getChildren())[0];
+	else return navGroup; 
+}
 
 if(activity.id) { var cancel_btn = Titanium.UI.createButton({ systemButton: Ti.UI.iPhone.SystemButton.TRASH }); }
 else { var cancel_btn = Titanium.UI.createButton({ systemButton: Ti.UI.iPhone.SystemButton.CANCEL }); }
@@ -55,9 +63,9 @@ else { var save_btn = Titanium.UI.createButton({ systemButton: Ti.UI.iPhone.Syst
 window.rightNavButton = save_btn;
 
 cancel_btn.addEventListener('click', function() {
-	//navGroupWindow.getChildren()[0].close(window);
 	if(activity.id == null) {
-		navGroupWindow.close();
+		if(navGroupWindow) navGroupWindow.close();
+		else navGroup.close(window);
 		return;
 	}
 	
@@ -77,8 +85,8 @@ cancel_btn.addEventListener('click', function() {
      		  	activity.cloud_id = activity.cloud_id?activity.cloud_id:getActivityLocal(activity.id)[0].cloud_id;
 				deleteActivityLocal(activity.id);			
 				deleteObjectACS('activities', activity.cloud_id);
-				navGroupWindow.result = -1;
-      			navGroupWindow.close();
+      			if(navGroupWindow) navGroupWindow.close();
+      			else navGroup.close(window);
       			break;
 
       		 case 1:       			
@@ -89,66 +97,6 @@ cancel_btn.addEventListener('click', function() {
 });
 
 save_btn.addEventListener('click', function() {
-/*	if(table.scrollable == false) { return; }
-
-	var activity_test = false, frequency_test = false, date_test = false, goals_test=false;
-	
-	if(activity_field.value == null || activity_field.value == '') {
-		alert('You do not seem to have entered anything for activity. Please re-check');
-	}
-	else { activity_test=true; }
-	if(frequency.text != 'Tap to change') { frequency_test=true; }
-	else { alert('Place enter the frequency of the activity'); }
-	if(!isValidDate(start_date.text)) { alert('Your start date seems to be invalid. Please recheck'); }
-	else if(!isValidDate(end_date.text)) { alert('Your end date seems to be invalid. Please recheck'); }
-	else if(!isStartBeforeEnd(start_date.text,end_date.text)) 
-	{ alert('Your end date seems to be before your start date. Please correct'); }
-	else { date_test = true; }
-	if(goals_field.value == null || goals_field.value == '') {
-		alert('You must list at least one goal');
-	}
-	else { goals_test=true; }
-	
-	if(activity_test && frequency_test && date_test && goals_test)
-	{
-		if(activity.id == null) {
-			if(!Titanium.Network.online) {
-				alert('Error:\n You are not connected to the internet. Cannot create new activity');
-				return;
-			}
-			
-			if(activity.appointment_id != null) {
-				var appointment_id = '"'+activity.appointment_id+'"';
-				activity.id = insertActivityLocal(null,appointment_id, activity_field.value, start_date.text, end_date.text, location.value, frequency.text);
-			}
-			else { 
-				var entry_id = '"'+activity.entry_id+'"';
-				activity.id = insertActivityLocal(entry_id,null,activity_field.value, start_date.text, end_date.text, location.value, frequency.text);
-			}
-			
-			createObjectACS('activities', { id: activity.id, activity_field: activity_field.value, start_date: start_date.text,
-											end_date: end_date.text, location: location.value, frequency: frequency.text, end_notes: endNotes_field.value });
-		}
-		else {
-				updateActivityLocal(activity.id,start_date.text,end_date.text,activity_field.value,location.value,frequency.text);
-		}
-		deleteGoalsForActivityLocal(activity.id);
-		activity.goals.splice(0, activity.goals.length);
-		if(goals_field.value != null) {
-			if(goals_field.value.length > 1) {
-				var final_goals = goals_field.value.split(',');
-				for(var i=0;i < final_goals.length; i++) {
-					if(final_goals[i].length < 2) continue;
-
-					insertGoalForActivityLocal(activity.id,final_goals[i]);
-					activity.goals.push(final_goals[i]);
-				}
-			}
-		}
-		
-		updateActivitySuccessStatus(activity.id,successful_switcher.value);
-		if(endNotes_field.value != null || endNotes_field.value.length > 1) updateActivityEndNotes(activity.id,endNotes_field.value); */
-		
 		
 		if(activity.id != null) {
 			var all_saved=true;
@@ -167,7 +115,8 @@ save_btn.addEventListener('click', function() {
 					
 					  			 switch (g.index) {
 					     		 case 0:
-					      			navGroupWindow.close();
+					      			if(navGroupWindow) navGroupWindow.close();
+      								else navGroup.close(window);
 					      			return;
 					
 					      		 case 1:       			
@@ -178,8 +127,9 @@ save_btn.addEventListener('click', function() {
 							
 					}
 				}
-				if(all_saved) { 
-					navGroupWindow.close(); 
+				if(all_saved) {
+					if(navGroupWindow) navGroupWindow.close();
+      				else navGroup.close(window); 
 					return;
 				} 
 		}
@@ -203,8 +153,8 @@ save_btn.addEventListener('click', function() {
 			activity.additional_notes = additional_notes.text;
 			//window.result = activity;
 			navGroupWindow.result = activity;
-			//navGroupWindow.getChildren()[0].close(window);
-			navGroupWindow.close();
+			if(navGroupWindow) navGroupWindow.close();
+      		else navGroup.close(window);
 		}
 	
 });
@@ -395,6 +345,10 @@ var table = Ti.UI.createTableView({
 	});
 	
 	//Rules for what to display as the status
+	if(activity.status === 'Completed' || activity.status === 'Cancelled') {
+		blurSection(sectionDetails);
+	}
+	
 	if(activity.id) {
 		if(!isValidDate(activity.end_date) && status.text === 'Scheduled') {
 			status.text = "Complete";
@@ -618,6 +572,8 @@ function saveStatus(row_index)
 {
 	updateActivityLocal(activity.id, 'status', status.text);
 	activity.status = status.text;
+	
+	if(row_index == undefined) row_index = sectionStatus.rowCount-1;
 	if(sectionStatus.rows[row_index].backgroundColor == 'blue')	{
 		sectionStatus.rows[row_index].backgroundColor = '#CCC';
 		sectionStatus.rows[row_index].children[0].text = 'Changes Saved!';
@@ -629,7 +585,9 @@ function saveStatus(row_index)
 function saveAdditionalNotes(row_index)
 {	
 	updateActivityLocal(activity.id, 'additional_notes', additional_notes.text);
+	activity.additional_notes = additional_notes.text;
 	
+	if(row_index == undefined) row_index = sectionStatus.rowCount-1;
 	if(sectionStatus.rows[row_index].backgroundColor == 'blue') {
 		sectionStatus.rows[row_index].backgroundColor = '#CCC';
 		sectionStatus.rows[row_index].children[0].text = 'Changes Saved';
@@ -664,12 +622,14 @@ function saveGoals()
 function saveMainActivity()
 {
 	updateActivityLocal(activity.id, 'main_activity', main_activity.text);
+	activity.main_activity = main_activity.text;
 	return true;
 }
 
 function saveLocation()
 {
 	updateActivityLocal(activity.id, 'location', location.value);
+	activity.location = location.value;
 	return true;
 }
 
@@ -796,11 +756,10 @@ rowAdditionalNotes.addEventListener('click', function() {
 		var additional_notes_text = '';
 	}
 	else {
-		additional_notes_text = additional_notes.text;
+		var additional_notes_text = additional_notes.text;
 	}
 	additional_notes_page = new additional_notes_page('Observations', "Make any notes regarding the outcome of this activity", additional_notes_text);
-	var children = navGroupWindow.getChildren();
-	children[0].open(additional_notes_page);
+	(getNavGroup()).open(additional_notes_page);
 													
 	additional_notes_page.addEventListener('close', function() {
 		if(!additional_notes_page.result) {
@@ -824,8 +783,7 @@ if(isBlurred(e)) {
 }	
 	var goals_page = require('ui/common/helpers/items');
 	goals_page = new goals_page(activity.goals, 'Goals');
-	var children = navGroupWindow.getChildren();
-	children[0].open(goals_page);
+	(getNavGroup()).open(goals_page);
 	
 	goals_page.addEventListener('close', function() {
 		activity.goals = goals_page.result;
@@ -845,11 +803,10 @@ if(isBlurred(e)) {
 		var main_activity_text = '';
 	}
 	else {
-		main_activity_text = main_activity.text;
+		var main_activity_text = main_activity.text;
 	}
 	activity_page = new activity_page('Main Activity', "Describe the main activity", main_activity_text);
-	var children = navGroupWindow.getChildren();
-	children[0].open(activity_page);
+	(getNavGroup()).open(activity_page);
 													
 	activity_page.addEventListener('close', function() {
 		if(!activity_page.result) {
@@ -858,9 +815,9 @@ if(isBlurred(e)) {
 		else {
 			main_activity.text = activity_page.result;
 		}
+		activateSaveButton();
 	});
-	
-	activateSaveButton();
+		
 });
 
 location.addEventListener('click', function(e) {
@@ -1049,8 +1006,7 @@ if(isBlurred(e)) {
 	
 	var alerts_page = require('ui/common/helpers/alerts');
 	alerts_page = new alerts_page(activity.times, alert_text.text);
-	var children = navGroupWindow.getChildren();
-	children[0].open(alerts_page);
+	(getNavGroup()).open(alerts_page);
 	
 	alerts_page.addEventListener('close', function() {
 		activity.times = alerts_page.result;
@@ -1069,14 +1025,15 @@ sectionDetails.addEventListener('click', function(e) {
 			if(!beforeSaving()) return;
 			saveGoals();
 			saveMainActivity();
-			saveDetails();
+			saveDateTimeDetails();
 			
 			Ti.App.fireEvent('eventSaved');
 			deactivateSaveButton();
 	}
 })
 
-return navGroupWindow;
+if(navGroup == undefined) { navGroup = (navGroupWindow.getChildren())[0]; return navGroupWindow; }
+else return window;
 
 }
 
