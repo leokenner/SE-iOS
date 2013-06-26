@@ -2,6 +2,7 @@
 
 function entry_form(input, navGroup)
 {
+	var Cloud = require('ti.cloud'); 
 	Ti.include('ui/common/helpers/dateTime.js');
 	Ti.include('ui/common/helpers/list.js');
 	Ti.include('ui/common/database/database.js');
@@ -13,6 +14,8 @@ function entry_form(input, navGroup)
 		main_entry: input.main_entry?input.main_entry:'No entry entered',
 		date: input.date?input.date:timeFormatted(new Date).date,
 		time: input.time?input.time:timeFormatted(new Date).time,
+		created_at: input.created_at?input.created_at:generateJsonDateString(),
+		updated_at: input.updated_at?input.updated_at:generateJsonDateString(),
 	}
 	
 		
@@ -59,12 +62,38 @@ function entry_form(input, navGroup)
 
   			 	switch (g.index) {
      		 	case 0:
-     		 		Ti.App.fireEvent('eventSaved'); //This is to delete all related local notifications
+     		 		if(!Titanium.Network.online) {
+     		 			alert('You do not have an internet connection');
+     		 			return;
+     		 		}
      		 	
      		  		entry.cloud_id = entry.cloud_id?entry.cloud_id:getEntryLocal(entry.id)[0].cloud_id;
 					deleteEntryLocal(entry.id);			
 					deleteObjectACS('entries', entry.cloud_id);
-      				if(navGroupWindow != undefined) navGroupWindow.close();
+					//Check if this is the last entry of the record. If so, the record must also be deleted
+					var record_cloud_id = getRecordLocal(entry.record_id)[0].cloud_id;
+					var entries = getEntryBy('record_id', entry.record_id);
+					if(entries.length == 0) {
+							deleteRecordLocal(entry.record_id);
+							deleteObjectACS('records', record_cloud_id);
+					}
+					else {
+							Cloud.Objects.update({
+								    classname: 'records',
+								    id: record_cloud_id,
+								    fields: {},
+								}, function (e) {
+								    if (e.success) {
+										updateRecordLocal(entry.record_id, 'updated_at', e.records[0].updated_at); 		
+								    } else {
+								        alert('Error:\n' + ((e.error && e.message) || JSON.stringify(e)));
+								    }
+							});
+						
+					}
+					Ti.App.fireEvent('eventSaved'); //This is to delete all related local notifications
+					
+      				if(navGroupWindow) navGroupWindow.close();
       				else navGroup.close(window);
       				break;
 
@@ -78,41 +107,6 @@ function entry_form(input, navGroup)
 	
 	
 	save_btn.addEventListener('click', function() {
-	/*	if(table.scrollable == false) { return; }
-		
-		if(main_entry.value == null || main_entry.value == '') {
-			alert('You do not seem to have entered anything for entry. Please re-check');
-			return;
-		}
-		
-		if(entry.record_id == null) {
-			if(!Titanium.Network.online) {
-				alert('Error:\n You are not connected to the internet. Cannot create new entry');
-				return;
-			}
-			
-			entry.record_id = insertRecordLocal(Titanium.App.Properties.getString('child'));
-			entry.id = insertEntryLocal(entry.record_id,main_entry.value,entry.date,location.value);
-			updateRecordLocal(entry.record_id,entry.id,'entry',timeFormatted(new Date()).date,timeFormatted(new Date()).time);
-			
-			createObjectACS('records', { id: entry.record_id, child_id: Titanium.App.Properties.getString('child'), current: entry.id,
-										current_type: 'entry', latest_date: timeFormatted(new Date()).date, latest_time: timeFormatted(new Date()).time, });		
-		
-		
-			createObjectACS('entries', { id: entry.id, record_id: entry.record_id, main_entry: main_entry.value, 
-											date: entry.date, location: location.value, });
-		}
-		else if(entry.id == null) {
-			entry.id = insertEntryLocal(entry.record_id,main_entry.value,entry.date,location.value);
-			updateRecordLocal(entry.record_id,Titanium.App.Properties.getString('child'),entry.id,'entry',timeFormatted(new Date()).date,timeFormatted(new Date()).time);
-		
-			createObjectACS('entries', { id: entry.id, record_id: entry.record_id, main_entry: main_entry.value, 
-											date: entry.date, location: location.value, });
-		}
-		else {
-			updateEntryLocal(entry.id,main_entry.value,entry.date,location.value);
-			updateRecordTimesForEntryLocal(entry.id, timeFormatted(new Date()).date, timeFormatted(new Date()).time);
-		} */
 		if(entry.id != null) {
 			var all_saved=true;
 			
@@ -130,7 +124,7 @@ function entry_form(input, navGroup)
 					
 					  			 switch (g.index) {
 					     		 case 0:
-					      			if(navGroupWindow != undefined) navGroupWindow.close();
+					      			if(navGroupWindow) navGroupWindow.close();
       								else navGroup.close(window);
 					      			return;
 					
@@ -153,10 +147,15 @@ function entry_form(input, navGroup)
 			if(!beforeSaving()) return;
 			saveDetails();
 			 
-			entry.main_entry = main_entry.value;
-			navGroupWindow.result = entry;
-			if(navGroupWindow != undefined) navGroupWindow.close();
-			else navGroup.close(window);
+			entry.main_entry = main_entry.text;
+			if(navGroupWindow != undefined) {
+				navGroupWindow.result = entry;
+				navGroupWindow.close();
+			}
+			else { 
+				window.result = entry;
+				navGroup.close(window);
+			}
 		}
 	});
 	
@@ -185,13 +184,16 @@ function entry_form(input, navGroup)
 	
 	var sectionDetails = Ti.UI.createTableViewSection({ headerTitle: ' '});
 	sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', }));
+	sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', }));
 	sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', height: 90, hasChild: true, }));
+	var when_description = Titanium.UI.createLabel({ text: 'Please note the date and at which this event took place, if applicable', left: 15, font: { fontSize: 15, }, });
 	var dateTime_title = Titanium.UI.createLabel({ text: '*When', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
 	var dateTime = Ti.UI.createLabel({ text: entry.date+' '+entry.time, left: '30%', width: '70%', bubbleParent: false, });
-	var main_entry = Ti.UI.createLabel({ left: 15, width: '90%', text: entry.main_entry, font: { fontSize: 15, }, });
-	sectionDetails.rows[0].add(dateTime_title);
-	sectionDetails.rows[0].add(dateTime);
-	sectionDetails.rows[1].add(main_entry);
+	var main_entry = Ti.UI.createLabel({ left: 15, width: '90%', text: entry.main_entry, font: { fontSize: 15, }, width: '100%', height: '100%', });
+	sectionDetails.rows[0].add(when_description);
+	sectionDetails.rows[1].add(dateTime_title);
+	sectionDetails.rows[1].add(dateTime);
+	sectionDetails.rows[2].add(main_entry);
 	if(entry.id) {
 		sectionDetails.add(Ti.UI.createTableViewRow({ backgroundColor: '#CCC', })); 
 		sectionDetails.rows[sectionDetails.rowCount-1].add(Ti.UI.createLabel({ text: 'No Change Made', textAlign: 'center', font: { fontSize: 15, }, width: '80%', }));
@@ -219,9 +221,7 @@ function setTableHeight(table)
 }	
 
 function beforeSaving() 
-{
-	if(table.scrollable == false) return false;
-	
+{	
 	if(!Titanium.Network.online) {
 		alert('Error:\n You are not connected to the internet. Cannot create new appointment');
 		return false;
@@ -229,19 +229,30 @@ function beforeSaving()
 	
 	if(!entry.record_id) {
 		entry.record_id = insertRecordLocal(Titanium.App.Properties.getString('child'));
-		entry.id = insertEntryLocal(entry.record_id,main_entry.value,entry.date,entry.time);
-		
-		createObjectACS('records', { id: entry.record_id, child_id: Titanium.App.Properties.getString('child'), current: entry.id,
-										current_type: 'entry', latest_date: timeFormatted(new Date()).date, latest_time: timeFormatted(new Date()).time, });	
 	}
 	
+	entry.main_entry = main_entry.text;
 	if(!entry.id) {
-		entry.id = insertEntryLocal(entry.record_id,main_entry.value,entry.date,entry.time);
-		
-		createObjectACS('entries', { id: entry.id, record_id: entry.record_id, main_entry: main_entry.value, 
-											date: entry.date, });
+		entry.id = insertEntryLocal(entry.record_id,main_entry.text,entry.date,entry.time);
+		createEntryACS(entry);   
 	}
-	updateRecordLocal(entry.record_id,entry.id,'entry',timeFormatted(new Date()).date,timeFormatted(new Date()).time);
+	else { 
+		var cloud_version = getRecordLocal(entry.record_id);	
+		if(cloud_version[0].cloud_id) { 
+			Cloud.Objects.update({
+				    classname: 'records',
+				    id: cloud_version[0].cloud_id,
+				    fields: {},
+				}, function (e) {
+			    if (e.success) {
+					updateRecordLocal(entry.record_id,'updated_at',e.records[0].updated_at);	 		
+			    } else {
+			        Ti.API.info('Error:\n' + ((e.error && e.message) || JSON.stringify(e))+'\nrecords');
+			    }
+			});
+		}
+	}
+	
 	
 	return true;
 }
@@ -256,9 +267,9 @@ function activateSaveButton()
 
 function deactivateSaveButton()
 {
-	if(sectionDetails.rows[sectionDateTime.rowCount-1].backgroundColor == '#CCC') { 
-		sectionDetails.rows[sectionDetails.rowCount-1].backgroundColor = 'blue';
-		sectionDetails.rows[sectionDetails.rowCount-1].children[0].text = 'Save Changes';
+	if(sectionDetails.rows[sectionDetails.rowCount-1].backgroundColor == 'blue') { 
+		sectionDetails.rows[sectionDetails.rowCount-1].backgroundColor = '#CCC';
+		sectionDetails.rows[sectionDetails.rowCount-1].children[0].text = 'Changes Saved!';
 	}
 }
 
@@ -336,6 +347,7 @@ main_entry.addEventListener('click', function(e) {
 	(getNavGroup()).open(entry_page);
 													
 	entry_page.addEventListener('close', function() {
+		if(entry_page.result === main_entry.text) return;
 		if(!entry_page.result) {
 			main_entry.text = "No entry entered";
 		}
@@ -351,6 +363,21 @@ sectionDetails.addEventListener('click', function(e) {
 		if(!validateDetails()) return;
 		if(!beforeSaving()) return;
 		saveDetails();
+		
+		var cloud_version = getEntryMainDetailsLocal(entry.id);
+		if(cloud_version[0].cloud_id) { 
+			Cloud.Objects.update({
+				    classname: 'entries',
+				    id: cloud_version[0].cloud_id,
+				    fields: cloud_version[0],
+				}, function (e) {
+				    if (e.success) {
+						 updateEntryLocal(entry.id, 'updated_at', e.entries[0].updated_at);	
+				    } else {
+				        Ti.API.info('Error:\n' + ((e.error && e.message) || JSON.stringify(e))+'\n Entries');
+				    }
+			});
+		}
 		
 		deactivateSaveButton();
 	}
