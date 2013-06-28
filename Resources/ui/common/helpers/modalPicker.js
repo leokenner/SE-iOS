@@ -94,12 +94,12 @@ else
 		
 		//Its a DOB picker or entry date picker......has to be in the present/past
 		if(data == 'DOB') {
-			var min_date = new Date(d.getFullYear()-18,01,01);
+			var min_date = new Date(d.getFullYear()-99,00,01);
 			var max_date = new Date(d.getFullYear(),d.getMonth(),d.getDate());
 			var value = new Date(selected); 
 		}
 		else if(data == 'entry') {
-			var min_date = new Date(d.getFullYear()-18,01,01,d.getHours(),d.getMinutes(),null,null);
+			var min_date = new Date(d.getFullYear()-18,00,01,d.getHours(),d.getMinutes(),null,null);
 			var max_date = new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null);
 			var value = new Date(selected);
 		}
@@ -120,13 +120,14 @@ else
   													  minDate: min_date,
   													  maxDate: max_date, 
   													  value: value,
-  													  minuteInterval: 5 });	
+  													  minuteInterval: 5, });	
   													  
   		if(type == Ti.UI.PICKER_TYPE_COUNT_DOWN_TIMER) picker.setCountDownDuration(selected);											  										 
   													  
   		picker.addEventListener('change',function(e) {
     		picker.setValue(e.value);
 		});
+
 }
 
 picker.selectionIndicator = true;
@@ -211,12 +212,12 @@ function ipadModalPicker(type, data, selected)
 			
 			//Its a DOB picker or incident date picker......has to be in the present/past
 			if(data == 'DOB') {
-				var min_date = new Date(d.getFullYear()-18,01,01);
+				var min_date = new Date(d.getFullYear()-99,00,01);
 				var max_date = new Date(d.getFullYear(),d.getMonth(),d.getDate());
 				var value = new Date(selected); 
 			}
 			else if(data == 'incident') {
-				var min_date = new Date(d.getFullYear()-18,01,01,d.getHours(),d.getMinutes(),null,null);
+				var min_date = new Date(d.getFullYear()-18,00,01,d.getHours(),d.getMinutes(),null,null);
 				var max_date = new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null);
 				var value = new Date(selected);
 			}

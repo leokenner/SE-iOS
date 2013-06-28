@@ -17,8 +17,8 @@ var treatment = {
 		cloud_id: input.cloud_id?input.cloud_id:null,
 		entry_id: input.entry_id?input.entry_id:null,
 		appointment_id: input.appointment_id?input.appointment_id:null,
-		start_date: input.start_date?input.start_date:timeFormatted(new Date).date,
-		end_date: input.end_date?input.end_date:timeFormatted(new Date).date,
+		start_date: input.start_date?input.start_date:timeFormatted(new Date()).date,
+		end_date: input.end_date?input.end_date:timeFormatted(new Date()).date,
 		medication: input.medication?input.medication:null,
 		prescribed_by: input.prescribed_by?input.prescribed_by:null,
 		diagnosis: input.diagnosis?input.diagnosis:null,
@@ -51,9 +51,10 @@ var window = Titanium.UI.createWindow({
 });
 window.result = null;
 
-if(navGroup == undefined) { 
+if(!navGroup) { 
 	var navGroupWindow = require('ui/handheld/ApplicationNavGroup');
 		navGroupWindow = new navGroupWindow(window);
+		navGroup = (navGroupWindow.getChildren())[0];
 		navGroupWindow.result = null;
 }
 
@@ -165,9 +166,14 @@ save_btn.addEventListener('click', function() {
 				treatment.interval = interval.text;
 				treatment.status = status.text;
 				window.result = treatment;
-				navGroupWindow.result = treatment;
-				if(navGroupWindow) navGroupWindow.close();
-      			else navGroup.close(window);
+				if(navGroupWindow) {
+					navGroupWindow.result = treatment;
+					navGroupWindow.close();
+				}
+      			else {
+      				navGroup.result = treatment;
+      				navGroup.close(window);
+      			}
 			}
 	
 });
@@ -189,7 +195,7 @@ sectionStatus.rows[0].add(status_title);
 sectionStatus.rows[0].add(status);
 
 var rowAdditionalNotes = Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', height: 90, hasChild: true, });
-var additional_notes = Ti.UI.createLabel({ left: 15, width: '90%', text: treatment.additional_notes, font: { fontSize: 15, }, });
+var additional_notes = Ti.UI.createLabel({ left: 15, width: '90%', text: treatment.additional_notes, font: { fontSize: 15, }, height: '100%', width: '100%', });
 rowAdditionalNotes.add(additional_notes);
 if(treatment.status === 'Completed') {
 	sectionStatus.add(rowAdditionalNotes);
@@ -370,7 +376,9 @@ if(treatment.status === 'Completed' || treatment.status === 'Cancelled') {
 
 if(treatment.id) {
 	if(!isValidDate(treatment.end_date) && status.text === 'Scheduled') {
-		status.text = "Complete";
+		status.text = "End date passed";
+		sectionStatus.rows[0].backgroundColor = "red";
+		blurSection(sectionDetails);
 	}
 	table.data = [sectionStatus, sectionDetails];	
 }
@@ -427,8 +435,29 @@ function beforeSaving()
 										//facebook_id: treatment.facebook_id,
 									});
 									
-	}
-	updateRecordTimesForEntryLocal(treatment.entry_id,timeFormatted(new Date()).date,timeFormatted(new Date()).time);
+	}	
+	updateTreatmentLocal(treatment.id, 'updated_at', timeFormatted(new Date()).date+' '+timeFormatted(new Date()).time);
+	//updateRecordTimesForEntryLocal(treatment.entry_id,timeFormatted(new Date()).date,timeFormatted(new Date()).time);
+	
+	var get_record_id = getEntryLocal(treatment.entry_id)[0].record_id; 
+	updateRecordLocal(get_record_id, treatment.entry_id, 'entries', timeFormatted(new Date()).date, timeFormatted(new Date()).time);
+	
+	var cloud_version = getRecordMainDetailsLocal(get_record_id);
+	cloud_version[0].current = getEntryLocal(treatment.entry_id)[0].cloud_id;
+	
+		if(cloud_version[0].cloud_id && Titanium.Network.online) { 
+			Cloud.Objects.update({
+				    classname: 'records',
+				    id: cloud_version[0].cloud_id,
+				    fields: cloud_version[0],
+				}, function (e) {
+				    if (e.success) {
+						 		
+				    } else {
+				        alert('Error:\n' + ((e.error && e.message) || JSON.stringify(e)));
+				    }
+			});
+		}
 	
 	return true;
 }
@@ -576,6 +605,21 @@ function saveStatusData(row_index)
 sectionStatus.addEventListener('click', function(e) {
 	if(e.row.backgroundColor == 'blue') {
 		saveStatusData(e.index);
+		var cloud_version = getTreatmentStatusDetailsLocal(treatment.id);
+		if(cloud_version[0].cloud_id && Titanium.Network.online) { 
+			Cloud.Objects.update({
+				    classname: 'treatments',
+				    id: cloud_version[0].cloud_id,
+				    fields: cloud_version[0],
+				}, function (e) {
+				    if (e.success) {
+						 		
+				    } else {
+				        alert('Error:\n' + ((e.error && e.message) || JSON.stringify(e)));
+				    }
+			});
+		}
+		
 		return;
 	}
 });
@@ -645,6 +689,7 @@ rowAdditionalNotes.addEventListener('click', function() {
 	(getNavGroup()).open(additional_notes_page);
 													
 	additional_notes_page.addEventListener('close', function() {
+		if(additional_notes_page.result === additional_notes.text) return;
 		if(!additional_notes_page.result) {
 			additional_notes.text = "No additional notes";
 		}
@@ -821,6 +866,7 @@ if(isBlurred(e)) {
 	(getNavGroup()).open(symptoms_page);
 	
 	symptoms_page.addEventListener('close', function() {
+		if(areArraysSame(treatment.symptoms, symptoms_page.result)) return; 
 		treatment.symptoms = symptoms_page.result;
 		if(treatment.symptoms.length == 0) symptoms_title.text = "No symptoms listed"; 
 		else if(treatment.symptoms.length == 1) symptoms_title.text = treatment.symptoms.length+" symptom listed";
@@ -1078,6 +1124,7 @@ if(this.color == '#CCC') {
 	(getNavGroup()).open(alerts_page);
 	
 	alerts_page.addEventListener('close', function() {
+		if(areArraysSame(treatment.times, alerts_page.result)) return; 
 		treatment.times = alerts_page.result;
 		frequency.text = treatment.times.length;
 		alertsPage_title.text = '('+treatment.times.length+') Times for alerts';
@@ -1096,13 +1143,28 @@ sectionDetails.addEventListener('click', function(e) {
 		saveSymptoms();
 		saveSideEffects();
 		
+		var cloud_version = getTreatmentMainDetailsLocal(treatment.id);
+			if(cloud_version[0].cloud_id && Titanium.Network.online) { 
+				Cloud.Objects.update({
+					    classname: 'treatments',
+					    id: cloud_version[0].cloud_id,
+					    fields: cloud_version[0],
+					}, function (e) {
+					    if (e.success) {
+					 		
+					    } else {
+					        alert('Error:\n' + ((e.error && e.message) || JSON.stringify(e)));
+					    }
+				});
+			}
+		
 		Ti.App.fireEvent('eventSaved');
 		deactivateSaveButton();
 	}
 });
 
 
-if(navGroup == undefined) { navGroup = (navGroupWindow.getChildren())[0]; return navGroupWindow; }
+if(navGroupWindow) return navGroupWindow; 
 else return window;
 };
 

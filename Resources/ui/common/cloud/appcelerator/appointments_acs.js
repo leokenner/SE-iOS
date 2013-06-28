@@ -13,20 +13,21 @@ function getAppointmentsACS(query /*, entry_local_id */)
 				    	continue;
 				    }
 				    
-				    if(appointment.entry_id == null || appointment.entry_id == undefined || /^\d+$/.test(appointment.entry_id)) { 
+				    if(!appointment.entry_id || /^\d+$/.test(appointment.entry_id)) { 
 				    	deleteObjectACS('appointments', appointment.id);
 				    	 continue; 
 				    } 
-				    var entry_local_id = getEntryByCloudIdLocal(appointment.entry_id)[0].id;
-				    if(entry_local_id==null || entry_local_id==undefined) {
+				    var the_entry = getEntryByCloudIdLocal(appointment.entry_id);
+				    if(!the_entry || !entry_local_id) {
 				    	deleteObjectACS('appointments', appointment.id);
 				    	continue;
 				    }
+				    var entry_local_id = the_entry[0].id;
 				    
 				    var doctor = e.appointments[i].doctor;
 				    var categories = e.appointments[i].categories?e.appointments[i].categories:[];
 				    var symptoms = e.appointments[i].symptoms?e.appointments[i].symptoms:[];
-					var appointment_local_id = insertAppointmentLocal(entry_local_id, appointment.date, appointment.time);
+					var appointment_local_id = insertAppointmentLocal(entry_local_id, appointment.date, appointment.time, appointment.created_at, appointment.updated_at);
 					updateAppointmentLocal(appointment_local_id, 'date', appointment.date);
 					updateAppointmentLocal(appointment_local_id, 'time', appointment.time);
 					updateAppointmentLocal(appointment_local_id, 'diagnosis', appointment.diagnosis);
@@ -74,7 +75,7 @@ function updateAppointmentsACS()
 		
 		appointments[i].entry_id = getEntryLocal(appointments[i].entry_id)[0].cloud_id;
 		 
-		if(appointments[i].cloud_id) { 
+		if(appointments[i].cloud_id && Titanium.Network.online) { 
 			Cloud.Objects.update({
 				    classname: 'appointments',
 				    id: appointments[i].cloud_id,

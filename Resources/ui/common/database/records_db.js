@@ -6,20 +6,54 @@ function initRecordsDBLocal()
 {
 	Ti.include('ui/common/database/database.js');
 	
-	db.execute('CREATE TABLE IF NOT EXISTS records (ID INTEGER PRIMARY KEY AUTOINCREMENT, CLOUD_ID TEXT, CHILD_ID INTERGER NOT NULL, CURRENT INTEGER, CURRENT_TYPE TEXT, LATEST_DATE TEXT, LATEST_TIME TEXT, FOREIGN KEY(CHILD_ID) REFERENCES children (ID))');
+	db.execute('CREATE TABLE IF NOT EXISTS records (ID INTEGER PRIMARY KEY AUTOINCREMENT, CLOUD_ID TEXT, CHILD_ID INTERGER NOT NULL, CREATED_AT TEXT, UPDATED_AT TEXT, FOREIGN KEY(CHILD_ID) REFERENCES children (ID))');
 }
 
-function insertRecordLocal(child_id, current, latest_date, latest_time, current_type)
+function insertRecordLocal(child_id, created_at, updated_at)
 {
-	var sql = "INSERT INTO records (child_id, current, latest_date, latest_time, current_type) VALUES ("; 
+	Ti.include('ui/common/helpers/dateTime.js');
+	var json_date = generateJsonDateString();
+	if(!created_at) created_at = json_date;
+	if(!updated_at) updated_at = json_date;
+	
+	var sql = "INSERT INTO records (child_id, created_at, updated_at) VALUES ("; 
 	sql = sql + "'" + child_id + "', ";
-	sql = sql + "'" + current + "', ";
-	sql = sql + "'" + latest_date + "', ";
-	sql = sql + "'" + latest_time + "', ";	 
-	sql = sql + "'" + current_type + "')";
+	sql = sql + "'" + created_at + "', ";
+	sql = sql + "'" + updated_at + "')";	 
 	db.execute(sql); 
 	
 	return db.lastInsertRowId;
+}
+
+function getRecordResultSet(resultSet, results)
+{
+	while (resultSet.isValidRow()) {
+			results.push({
+			  id: resultSet.fieldByName('id'),
+			  cloud_id: resultSet.fieldByName('cloud_id'),
+			  child_id: resultSet.fieldByName('child_id'),
+		   	  created_at: resultSet.fieldByName('created_at'),
+		   	  updated_at: resultSet.fieldByName('updated_at'),
+	        });
+	resultSet.next();
+    }
+    resultSet.close();
+    
+    return results;
+}
+
+function getRecordMainResultSet(resultSet, results)
+{
+	while (resultSet.isValidRow()) {
+			results.push({
+			  id: resultSet.fieldByName('id'),
+			  cloud_id: resultSet.fieldByName('cloud_id'),
+	        });
+	resultSet.next();
+    }
+    resultSet.close();
+    
+    return results;
 }
 
 function updateRecordCloudIdLocal(record_id, cloud_id)
@@ -30,24 +64,22 @@ function updateRecordCloudIdLocal(record_id, cloud_id)
 	db.execute(sql); 
 }
 
-function updateRecordLocal(record_id, current, current_type, latest_date, latest_time) 
-{ 
-	var sql = "UPDATE records SET CURRENT='"+current+"', ";
-	sql = sql + "LATEST_DATE='"+latest_date.replace("'","''")+"', ";
-	sql = sql + "LATEST_TIME='"+latest_time+"', ";
-	sql = sql + "CURRENT_TYPE='"+current_type+"' ";
+function updateRecordLocal(record_id, column, data)
+{
+	var intRegex = /^\d+$/;
+	if(intRegex.test(data)) {}   //The replacing quotes function throws an error if you use it on an integer
+	else { data = data.replace("'","''"); }
+	
+	var sql = "UPDATE records SET "+column+"='"+data+"' ";
 	sql = sql + "WHERE ID='"+record_id+"'"; 
 	
-	db.execute(sql); 
-	
-	return db.lastInsertRowId; 
+	db.execute(sql);
 }
 
-function updateRecordTimesForEntryLocal(current, latest_date, latest_time) 
+function updateRecordTimesForEntryLocal(current, updated_at) 
 { 
 	var sql = "UPDATE records SET ";
-	sql = sql + "LATEST_DATE='"+latest_date.replace("'","''")+"', ";
-	sql = sql + "LATEST_TIME='"+latest_time+"' ";
+	sql = sql + "UPDATED_AT='"+latest_time+"' ";
 	sql = sql + "WHERE CURRENT='"+current+"'"; 
 	
 	db.execute(sql); 
@@ -60,46 +92,20 @@ function getAllRecordsLocal()
 	var sql = "SELECT * FROM records";   
 	
 	var results = [];
-	var resultSet = db.execute(sql);
-    while (resultSet.isValidRow()) {
-			results.push({
-			  id: resultSet.fieldByName('id'),
-			  cloud_id: resultSet.fieldByName('cloud_id'),
-			  child_id: resultSet.fieldByName('child_id'),
-		   	  current: resultSet.fieldByName('current'),
-		   	  current_type: resultSet.fieldByName('current_type'),
-		   	  latest_date: resultSet.fieldByName('latest_date'),
-		   	  latest_time: resultSet.fieldByName('latest_time'),
-	        });
-	resultSet.next();
-    }
-    resultSet.close();		
+	var resultSet = db.execute(sql);		
 
-	return results;
+	return getRecordResultSet(resultSet, results);
 }
 
 
 function getRecordsForChildLocal(child_id) 
 { 
-	var sql = "SELECT * FROM records WHERE CHILD_ID='"+child_id+"' ORDER BY latest_date, latest_time DESC";  //Order by most recent first 
+	var sql = "SELECT * FROM records WHERE CHILD_ID='"+child_id+"' ORDER BY updated_at DESC";  //Order by most recent first 
 	
 	var results = [];
-	var resultSet = db.execute(sql);
-    while (resultSet.isValidRow()) {
-			results.push({
-			  id: resultSet.fieldByName('id'),
-			  cloud_id: resultSet.fieldByName('cloud_id'),
-			  child_id: resultSet.fieldByName('child_id'),
-		   	  current: resultSet.fieldByName('current'),
-		   	  current_type: resultSet.fieldByName('current_type'),
-		   	  latest_date: resultSet.fieldByName('latest_date'),
-		   	  latest_time: resultSet.fieldByName('latest_time'),
-	        });
-	resultSet.next();
-    }
-    resultSet.close();		
+	var resultSet = db.execute(sql);	
 
-	return results;
+	return getRecordResultSet(resultSet, results);
 }
 
 function getRecordLocal(id) 
@@ -107,22 +113,19 @@ function getRecordLocal(id)
 	var sql = "SELECT * FROM records WHERE ID='"+id+"'";   
 	
 	var results = [];
-	var resultSet = db.execute(sql);
-    while (resultSet.isValidRow()) {
-			results.push({
-			  id: resultSet.fieldByName('id'),
-			  cloud_id: resultSet.fieldByName('cloud_id'),
-			  child_id: resultSet.fieldByName('child_id'),
-		   	  current: resultSet.fieldByName('current'),
-		   	  current_type: resultSet.fieldByName('current_type'),
-		   	  latest_date: resultSet.fieldByName('latest_date'),
-		   	  latest_time: resultSet.fieldByName('latest_time'),
-	        });
-	resultSet.next();
-    }
-    resultSet.close();		
+	var resultSet = db.execute(sql);		
 
-	return results;
+	return getRecordResultSet(resultSet, results);
+}
+
+function getRecordMainDetailsLocal(id) 
+{ 
+	var sql = "SELECT * FROM records WHERE ID='"+id+"'";   
+	
+	var results = [];
+	var resultSet = db.execute(sql);		
+
+	return getRecordMainResultSet(resultSet, results);
 }
 
 function getRecordByCloudIdLocal(cloud_id) 
@@ -130,22 +133,9 @@ function getRecordByCloudIdLocal(cloud_id)
 	var sql = "SELECT * FROM records WHERE CLOUD_ID='"+cloud_id+"'";   
 	
 	var results = [];
-	var resultSet = db.execute(sql);
-    while (resultSet.isValidRow()) {
-			results.push({
-			  id: resultSet.fieldByName('id'),
-			  cloud_id: resultSet.fieldByName('cloud_id'),
-			  child_id: resultSet.fieldByName('child_id'),
-		   	  current: resultSet.fieldByName('current'),
-		   	  current_type: resultSet.fieldByName('current_type'),
-		   	  latest_date: resultSet.fieldByName('latest_date'),
-		   	  latest_time: resultSet.fieldByName('latest_time'),
-	        });
-	resultSet.next();
-    }
-    resultSet.close();		
+	var resultSet = db.execute(sql);		
 
-	return results;
+	return getRecordResultSet(resultSet, results);
 }
 
 function deleteRecordLocal(id)

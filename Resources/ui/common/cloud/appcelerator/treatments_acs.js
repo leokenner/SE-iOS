@@ -41,7 +41,8 @@ function getTreatmentsACS(query)
 						entry_id = '"'+entry[0].id+'"';
 						var treatment_local_id = insertTreatmentLocal(entry_id, appointment_id, treatment.start_date, 
 																	treatment.end_date, treatment.medication, treatment.type, 
-																	treatment.dosage, treatment.frequency, treatment.interval, treatment.alert);
+																	treatment.dosage, treatment.frequency, treatment.interval, 
+																	treatment.alert, treatment.created_at, treatment.updated_at);
 					
 					updateTreatmentLocal(treatment_local_id, 'status', treatment.status);
 					updateTreatmentLocal(treatment_local_id, 'prescribed_by', treatment.prescribed_by);
@@ -81,7 +82,7 @@ function updateTreatmentsACS()
 		if(treatments[i].appointment_id) treatments[i].appointment_id = getAppointmentLocal(treatments[i].appointment_id)[0].cloud_id;
 		treatments[i].entry_id = getEntryLocal(treatments[i].entry_id)[0].cloud_id;
 		 
-		if(treatments[i].cloud_id) { 
+		if(treatments[i].cloud_id && Titanium.Network.online) { 
 			Cloud.Objects.update({
 				    classname: 'treatments',
 				    id: treatments[i].cloud_id,

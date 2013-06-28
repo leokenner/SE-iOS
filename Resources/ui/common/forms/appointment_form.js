@@ -13,8 +13,8 @@ function appointment(input, navGroup)
 		diagnosis: input.diagnosis?input.diagnosis:null,
 		final_diagnosis: input.final_diagnosis?input.final_diagnosis:null,
 		status: input.status?input.status:'Scheduled',
-		date: input.date?input.date:timeFormatted(new Date).date,
-		time: input.time?input.time:timeFormatted(new Date).time,
+		date: input.date?input.date:timeFormatted(new Date()).date,
+		time: input.time?input.time:timeFormatted(new Date()).time,
 		duration: input.duration?input.duration:{
 								hours: 0,
 								minutes: 0,
@@ -171,8 +171,14 @@ function appointment(input, navGroup)
 				appointment.doctor.country = country.value;
 				appointment.status = status.text;
 				appointment.diagnosis = diagnosis.value;
-				navGroupWindow.result = appointment;
-				navGroupWindow.close();
+				if(navGroupWindow) {
+					navGroupWindow.result = appointment;
+					navGroupWindow.close();
+				}
+      			else {
+      				window.result = appointment;
+      				navGroup.close(window); 
+      			}
 			}
 	});
 	
@@ -284,6 +290,7 @@ if(appointment.status === 'Completed' || appointment.status === 'Cancelled') {
 if(appointment.id && !isValidDateTime(appointment.date+' '+appointment.time) && appointment.status === 'Scheduled') {
 	status.text = 'Missed';
 	sectionStatus.rows[0].backgroundColor = 'red';
+	blurSection(sectionDetails);
 }
 
 //If its complete, show the additional sections for prescription, additional notes etc
@@ -329,7 +336,7 @@ function beforeSaving()
 										duration: appointment.duration,
 										repeat: repeat.text,
 										alert: alert_text.text,
-										symptoms: (symptoms_field.value.replace(".",",")).split(','),
+										symptoms: appointment.symptoms,
 										additional_notes: additionalNotes_field.value,
 										doctor: {
 											name: name.value,
@@ -343,6 +350,27 @@ function beforeSaving()
 									});
 	}
 	updateRecordTimesForEntryLocal(appointment.entry_id,timeFormatted(new Date()).date,timeFormatted(new Date()).time);
+	//updateAppointmentLocal(appointment.id, 'updated_at', timeFormatted(new Date()).date+' '+timeFormatted(new Date()).time);
+	
+	var get_record_id = getEntryLocal(appointment.entry_id)[0].record_id;
+	updateRecordLocal(get_record_id, appointment.entry_id, 'entries', timeFormatted(new Date()).date, timeFormatted(new Date()).time);
+	 
+	var cloud_version = getRecordMainDetailsLocal(get_record_id);
+	cloud_version[0].current = getEntryLocal(appointment.entry_id);
+	
+		if(cloud_version[0].cloud_id && Titanium.Network.online) { 
+			Cloud.Objects.update({
+				    classname: 'records',
+				    id: cloud_version[0].cloud_id,
+				    fields: cloud_version[0],
+				}, function (e) {
+				    if (e.success) {
+						 		
+				    } else {
+				        alert('Error:\n' + ((e.error && e.message) || JSON.stringify(e)));
+				    }
+			});
+		}
 	
 	return true;
 }
@@ -471,6 +499,22 @@ function saveStatusData(row_index)
 sectionStatus.addEventListener('click', function(e) {
 	if(e.row.backgroundColor == 'blue') {
 		saveStatusData(e.index);
+		
+		var cloud_version = getAppointmentStatusDetailsLocal(appointment.id);
+		if(cloud_version[0].cloud_id && Titanium.Network.online) { 
+			Cloud.Objects.update({
+				    classname: 'appointments',
+				    id: cloud_version[0].cloud_id,
+				    fields: cloud_version[0],
+				}, function (e) {
+				    if (e.success) {
+						 		
+				    } else {
+				        alert('Error:\n' + ((e.error && e.message) || JSON.stringify(e)));
+				    }
+			});
+		}
+		
 		return;
 	}
 });
@@ -552,7 +596,7 @@ rowAdditionalNotes.addEventListener('click', function() {
 	(getNavGroup()).open(additional_notes_page);
 													
 	additional_notes_page.addEventListener('close', function() {
-		if(additional_notes.text != additional_notes_page.result) { 
+		if(additional_notes.text !== additional_notes_page.result) { 
 			if(!additional_notes_page.result) {
 				additional_notes.text = "No additional notes";
 			}
@@ -912,7 +956,23 @@ function saveDetails()
 }
 
 sectionDetails.addEventListener('click', function(e) {
-	if(e.row.backgroundColor == 'blue') saveDetails();
+	if(e.row.backgroundColor == 'blue') {
+		saveDetails();
+		var cloud_version = getAppointmentMainDetailsLocal(appointment.id);
+		if(cloud_version[0].cloud_id && Titanium.Network.online) { 
+			Cloud.Objects.update({
+				    classname: 'appointments',
+				    id: cloud_version[0].cloud_id,
+				    fields: cloud_version[0],
+				}, function (e) {
+				    if (e.success) {
+						 		
+				    } else {
+				        alert('Error:\n' + ((e.error && e.message) || JSON.stringify(e)));
+				    }
+			});
+		}
+	}
 });
 
 

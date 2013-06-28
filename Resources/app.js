@@ -16,17 +16,12 @@ if (Ti.version < 1.8 ) {
 
 // This is a single context application with multiple windows in a stack
 (function() {
-	//If we are on the mobile web, go straight to the landing page
-	if (Ti.Platform.osname == 'mobileweb') {
-		var mainWindow = require('ui/handheld/mobileweb/index');
-		mainWindow = new mainWindow();
-		mainWindow.open();
-		return;
-	}
-	
+var Cloud = require('ti.cloud');	
+		
 	Ti.include('ui/common/login_logout.js');
 	Ti.include('ui/common/database/users_db.js');
 	Ti.include('ui/common/database/database.js');
+	Ti.include('ui/common/localnotifications/localnotifications.js');
 	Ti.include('ui/common/cloud/appcelerator/users_acs.js');
 	Ti.include('ui/common/cloud/appcelerator/social/facebook.js');
 	Ti.include('ui/common/cloud/appcelerator/socialIntegrations.js');
@@ -37,29 +32,6 @@ if (Ti.version < 1.8 ) {
 	Ti.include('ui/common/cloud/appcelerator/appointments_acs.js');
 	Ti.include('ui/common/cloud/appcelerator/activities_acs.js');
 	Ti.include('ui/common/cloud/appcelerator/treatments_acs.js');
-	
-	var fb = require('facebook');
-	fb.appid = '553912771295725';
-	// Initial permissions must exclude offline and write priviledges
-	fb.permissions = ['read_stream'];
-	// This property needs to be false to use the built-in iOS 6 login
-	fb.forceDialogAuth = false;
-	fb.addEventListener('login', function(e) {
-	    if (e.success) {
-	        alert('Logged In');
-	    } else if (e.error) {
-	        alert(e.error);
-	    } else if (e.cancelled) {
-	        alert("Canceled");
-	    }
-	});
-	
-   
-   if (!fb.loggedIn) {
-    fb.authorize();
-	}
-	 	
-	//Ti.App.Properties.setObject('facebook', fb);  
 	
 	//render appropriate components based on the platform and form factor
 	var osname = Ti.Platform.osname,
@@ -91,14 +63,7 @@ if (Ti.version < 1.8 ) {
 	}
 	var count=0;
 	
-	initUsersDBLocal();   //init only users here so that the code to check on an existing user does not throw an error
-	var users = getAllUsersLocal();
-	if(users.length > 0) {
-		Titanium.App.Properties.setObject('loggedInUser', users[0]);
-	}
-	else {
-		Titanium.App.Properties.setObject('loggedInUser', null);
-	} 
+	updateTable();
 	
 	mainCover = new mainCover();
 	mainCover.open();
@@ -110,18 +75,17 @@ if (Ti.version < 1.8 ) {
 	Ti.App.addEventListener('databaseLoaded', function() {
 		count++;
 		if(count > 1) return;
-		//leftWindow = require('ui/common/menus/leftMenu');
-		//leftWindow = new leftWindow();
-		//leftWindow.open();
-		//mainTabGroup = new tabGroup(new mainWindow());
+		leftWindow = require('ui/common/menus/leftMenu');
+		leftWindow = new leftWindow();
+		leftWindow.open();
 		mainTabGroup = new mainWindow();
 		mainTabGroup.open();
 	}); 
 	
 	Ti.App.addEventListener('logoutClicked', function() {
 		count=0;
-		leftWindow.close();
-		mainTabGroup.close();
+		if(leftWindow) leftWindow.close();
+		if(mainTabGroup) mainTabGroup.close();
 	});  
 
 })();

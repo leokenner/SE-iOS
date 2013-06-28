@@ -33,13 +33,13 @@ function initDBLocal()
 function updateTable() 
 {
 	var sql = [];
-	sql[0] = "DROP TABLE IF EXISTS entries";
-/*	sql[1] = "DROP TABLE IF EXISTS treatment_categories";
-	sql[2] = "DROP TABLE IF EXISTS treatment_times";
-	sql[3] = "DROP TABLE IF EXISTS appointment_symptoms";
-	sql[4] = "DROP TABLE IF EXISTS appointment_doctors";
-	sql[5] = "DROP TABLE IF EXISTS appointments";
-	sql[6] = "DROP TABLE IF EXISTS incident_symptoms";
+	sql[0] = "DROP TABLE IF EXISTS treatments";
+	sql[1] = "DROP TABLE IF EXISTS appointments";
+	sql[2] = "DROP TABLE IF EXISTS entries";
+	sql[3] = "DROP TABLE IF EXISTS children";
+	sql[4] = "DROP TABLE IF EXISTS activities";
+	sql[5] = "DROP TABLE IF EXISTS records";
+/*	sql[6] = "DROP TABLE IF EXISTS incident_symptoms";
 	sql[7] = "DROP TABLE IF EXISTS incidents";
 	sql[8] = "DROP TABLE IF EXISTS records";
 	sql[9] = "DROP TABLE IF EXISTS relationships";

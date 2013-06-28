@@ -5,16 +5,21 @@ function initActivitiesDBLocal()
 {
 	Ti.include('ui/common/database/database.js');
 	
-	db.execute('CREATE TABLE IF NOT EXISTS activities (ID INTEGER PRIMARY KEY AUTOINCREMENT, CLOUD_ID TEXT, ENTRY_ID INTEGER, APPOINTMENT_ID INTEGER, MAIN_ACTIVITY TEXT NOT NULL, RECOMMENDED_BY TEXT, DIAGNOSIS TEXT, START_DATE TEXT NOT NULL, END_DATE TEXT NOT NULL, FREQUENCY TEXT, INTERVAL TEXT, ALERT TEXT, STATUS TEXT, LOCATION TEXT, ADDITIONAL_NOTES TEXT, FACEBOOK_ID TEXT, FOREIGN KEY(ENTRY_ID) REFERENCES entries (ID), FOREIGN KEY(APPOINTMENT_ID) REFERENCES appointments (ID))');
+	db.execute('CREATE TABLE IF NOT EXISTS activities (ID INTEGER PRIMARY KEY AUTOINCREMENT, CLOUD_ID TEXT, ENTRY_ID INTEGER, APPOINTMENT_ID INTEGER, MAIN_ACTIVITY TEXT NOT NULL, RECOMMENDED_BY TEXT, DIAGNOSIS TEXT, START_DATE TEXT NOT NULL, END_DATE TEXT NOT NULL, FREQUENCY TEXT, INTERVAL TEXT, ALERT TEXT, STATUS TEXT, LOCATION TEXT, ADDITIONAL_NOTES TEXT, CREATED_AT TEXT, UPDATED_AT TEXT, FACEBOOK_ID TEXT, FOREIGN KEY(ENTRY_ID) REFERENCES entries (ID), FOREIGN KEY(APPOINTMENT_ID) REFERENCES appointments (ID))');
 	db.execute('CREATE TABLE IF NOT EXISTS activity_times (ACTIVITY_ID INTEGER NOT NULL, TIME TEXT NOT NULL, FOREIGN KEY(ACTIVITY_ID) REFERENCES activities (ID))');
 	db.execute('CREATE TABLE IF NOT EXISTS activity_goals (ACTIVITY_ID INTEGER NOT NULL, GOAL TEXT NOT NULL, FOREIGN KEY(ACTIVITY_ID) REFERENCES activities (ID))');
 }
 
 
 //removed the quotes from entry_id and appointment_id to allow for null values
-function insertActivityLocal(entry_id, appointment_id, main_activity, start_date, end_date, frequency, interval, alert) 
-{ 
-	var sql = "INSERT INTO activities (entry_id, appointment_id, main_activity, start_date, end_date, frequency, interval, alert) VALUES ("; 
+function insertActivityLocal(entry_id, appointment_id, main_activity, start_date, end_date, frequency, interval, alert, created_at, updated_at) 
+{
+	Ti.include('ui/common/helpers/dateTime.js');
+	var json_date = generateJsonDateString();
+	if(!created_at) created_at = json_date;
+	if(!updated_at) updated_at = json_date;
+	 	 
+	var sql = "INSERT INTO activities (entry_id, appointment_id, main_activity, start_date, end_date, frequency, interval, alert, created_at, updated_at) VALUES ("; 
 	sql = sql + "" + entry_id + ", ";
 	sql = sql + "" + appointment_id + ", ";
 	sql = sql + "'" + main_activity.replace("'", "''") + "', ";
@@ -22,7 +27,9 @@ function insertActivityLocal(entry_id, appointment_id, main_activity, start_date
 	sql = sql + "'" + end_date.replace("'", "''") + "', ";
 	sql = sql + "'" + frequency + "', ";
 	sql = sql + "'" + interval.replace("'", "''") + "', ";
-	sql = sql + "'" + alert.replace("'", "''") + "')";
+	sql = sql + "'" + alert.replace("'", "''") + "', ";
+	sql = sql + "'" + created_at + "', ";
+	sql = sql + "'" + updated_at + "')";
 	db.execute(sql); 
 	
 	return db.lastInsertRowId; 
@@ -76,7 +83,51 @@ function getActivityResultSet(resultSet, results)
 		   	  alert: resultSet.fieldByName('alert'),
 		   	  status: resultSet.fieldByName('status'),
 		   	  additional_notes: resultSet.fieldByName('additional_notes'),
+		   	  created_at: resultSet.fieldByName('created_at'),
+		   	  updated_at: resultSet.fieldByName('updated_at'),
 		   	  facebook_id: resultSet.fieldByName('facebook_id'),
+	        });
+	resultSet.next();
+    }
+    resultSet.close();
+    
+    for(var i=0; i < results.length; i++) {
+    	results[i].times = getTimesOfActivityLocal(results[i].id);
+    	results[i].goals = getGoalsOfActivityLocal(results[i].id);
+    }	
+    
+    return results;
+}
+
+function getActivityStatusResultSet(resultSet, results)
+{
+	while (resultSet.isValidRow()) {
+			results.push({
+			  id: resultSet.fieldByName('id'),
+			  cloud_id: resultSet.fieldByName('cloud_id'),
+		   	  status: resultSet.fieldByName('status'),
+		   	  additional_notes: resultSet.fieldByName('additional_notes'),
+	        });
+	resultSet.next();
+    }
+    resultSet.close();
+    
+    return results;
+}
+
+function getActivityMainResultSet(resultSet, results)
+{
+	while (resultSet.isValidRow()) {
+			results.push({
+			  id: resultSet.fieldByName('id'),
+			  cloud_id: resultSet.fieldByName('cloud_id'),
+		   	  main_activity: resultSet.fieldByName('main_activity'),
+		   	  start_date: resultSet.fieldByName('start_date'),
+		   	  end_date: resultSet.fieldByName('end_date'),
+		   	  frequency: resultSet.fieldByName('frequency'),
+		   	  interval: resultSet.fieldByName('interval'),
+		   	  location: resultSet.fieldByName('location'),
+		   	  alert: resultSet.fieldByName('alert'),
 	        });
 	resultSet.next();
     }
@@ -154,6 +205,48 @@ function getActivityLocal(activity_id)
 	return getActivityResultSet(resultSet, results);
 }
 
+function getActivityStatusDetailsLocal(activity_id)
+{
+	var sql = "SELECT * FROM activities WHERE ID='"+activity_id+"'"; 
+	
+	var results = [];
+	var resultSet = db.execute(sql);		
+
+	return getActivityStatusResultSet(resultSet, results);
+}
+
+function getActivityMainDetailsLocal(activity_id)
+{
+	var sql = "SELECT * FROM activities WHERE ID='"+activity_id+"'"; 
+	
+	var results = [];
+	var resultSet = db.execute(sql);		
+
+	return getActivityMainResultSet(resultSet, results);
+}
+
+function getActivityCreationTimeLocal(activity_id) 
+{ 
+	var sql = "SELECT created_at FROM activities WHERE ID='"+activity_id+"'"; 
+	
+	var resultSet = db.execute(sql);		
+
+	return resultSet;
+}
+
+function getActivityUpdatedTimeLocal(activity_id) 
+{ 
+	var sql = "SELECT updated_at FROM activities WHERE ID='"+activity_id+"'"; 
+	
+	var resultSet = db.execute(sql);		
+	while (resultSet.isValidRow()) { 
+    	var result = resultSet.fieldByName('updated_at');
+		resultSet.next();
+    }
+
+	return result;
+}
+
 function getTimesOfActivityLocal(activity_id) 
 {
 	var sql = "SELECT * FROM activity_times WHERE ACTIVITY_ID='"+activity_id+"'";
@@ -198,22 +291,6 @@ function updateActivityLocal(activity_id, column, data)
 	db.execute(sql);
 }
 
-/*
-function updateActivityLocal(activity_id, start_date, end_date, main_activity, location, frequency) 
-{ 
-	var sql = "UPDATE activities SET START_DATE='"+start_date.replace("'","''")+"', ";
-	sql = sql + "END_DATE='"+end_date.replace("'","''")+"', ";
-	sql = sql + "MAIN_ACTIVITY='"+main_activity.replace("'","''")+"', ";
-	sql = sql + "LOCATION='"+location+"', ";
-	sql = sql + "FREQUENCY='"+frequency.replace("'","''")+"' ";
-	sql = sql + "WHERE ID='"+activity_id+"'"; 
-	
-	db.execute(sql); 
-	
-	return db.lastInsertRowId; 
-}
-*/
-
 function updateActivitySuccessStatus(activity_id, success_status)
 {
 	if(success_status == false) {
@@ -253,6 +330,12 @@ function deleteActivityLocal(activity_id)
 	deleteTimesForActivityLocal(activity_id);
 	
 	var sql = "DELETE FROM activities WHERE ID='"+activity_id+ "'";
+	db.execute(sql);
+}
+
+function deleteActivityBy(column, data)
+{
+	var sql = "DELETE FROM activities WHERE "+column+"='"+data+ "'";
 	db.execute(sql);
 }
 

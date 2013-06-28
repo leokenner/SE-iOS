@@ -17,8 +17,8 @@ var activity = {
 		appointment_id: input.appointment_id?input.appointment_id:null,		
 		recommended_by: input.recommended_by?input.recommended_by:null,
 		main_activity: input.main_activity?input.main_activity:'No activity',
-		start_date: input.start_date?input.start_date:timeFormatted(new Date).date,
-		end_date: input.end_date?input.end_date:timeFormatted(new Date).date,
+		start_date: input.start_date?input.start_date:timeFormatted(new Date()).date,
+		end_date: input.end_date?input.end_date:timeFormatted(new Date()).date,
 		frequency: input.frequency?input.frequency:0,
 		interval: input.interval?input.interval:'every day',
 		alert: input.alert?input.alert:'Time of event',
@@ -45,6 +45,7 @@ window.result = null;
 if(navGroup == undefined) { 
 	var navGroupWindow = require('ui/handheld/ApplicationNavGroup');
 		navGroupWindow = new navGroupWindow(window);
+		navGroup = (navGroupWindow.getChildren())[0];
 		navGroupWindow.result = null;
 }
 
@@ -151,10 +152,14 @@ save_btn.addEventListener('click', function() {
 			activity.alert = alert_text.text;
 			activity.location = location.value;
 			activity.additional_notes = additional_notes.text;
-			//window.result = activity;
-			navGroupWindow.result = activity;
-			if(navGroupWindow) navGroupWindow.close();
-      		else navGroup.close(window);
+			if(navGroupWindow) {
+				navGroupWindow.result = activity;
+				navGroupWindow.close();
+			}
+      		else {
+      			window.result = activity;
+      			navGroup.close(window);
+      		}
 		}
 	
 });
@@ -172,7 +177,7 @@ var table = Ti.UI.createTableView({
 	sectionStatus.rows[0].add(status);
 	
 	var rowAdditionalNotes = Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', height: 90, hasChild: true, });
-	var additional_notes = Ti.UI.createLabel({ left: 15, width: '90%', text: activity.additional_notes, font: { fontSize: 15, }, });
+	var additional_notes = Ti.UI.createLabel({ left: 15, width: '90%', text: activity.additional_notes, font: { fontSize: 15, }, height: '100%', width: '100%', });
 	rowAdditionalNotes.add(additional_notes);
 	if(activity.status === 'Completed') {
 		sectionStatus.add(rowAdditionalNotes);
@@ -226,7 +231,7 @@ var table = Ti.UI.createTableView({
 	else var goals_message = activity.goals.length+" goals listed";
 	
 	var goals_title = Titanium.UI.createLabel({ text: goals_message, left: 15, width: '100%', font: { fontWeight: 'bold', fontSize: 18, }, });
-	var main_activity = Ti.UI.createLabel({ left: 15, width: '90%', text: activity.main_activity, font: { fontSize: 15, }, });
+	var main_activity = Ti.UI.createLabel({ left: 15, width: '90%', text: activity.main_activity, font: { fontSize: 15, }, height: '100%', width: '100%', });
 	var location_description = Titanium.UI.createLabel({ text: "If this activity needs to happen at a particular location, please mention it here", left: 15, font: { fontSize: 15, }, });
 	var location_title = Titanium.UI.createLabel({ text: 'Location', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
 	var location = Titanium.UI.createTextField({ hintText: 'eg: home', value: activity.location, width: '55%', left: '45%' });
@@ -351,7 +356,9 @@ var table = Ti.UI.createTableView({
 	
 	if(activity.id) {
 		if(!isValidDate(activity.end_date) && status.text === 'Scheduled') {
-			status.text = "Complete";
+			status.text = "End date passed";
+			sectionStatus.rows[0].backgroundColor = "red";
+			blurSection(sectionDetails);
 		}
 		table.data = [sectionStatus, sectionDetails];	
 	}
@@ -388,7 +395,7 @@ function beforeSaving()
 		}
 			var entry_id = '"'+activity.entry_id+'"'; 
 			activity.id = insertActivityLocal(entry_id, appointment_id, main_activity.text, 
-												start_date.text, end_date.text, frequency.text, interval.text, alert_text.text);
+												start_date.text, end_date.text, frequency.text, interval.text, alert_text.text);								
 		
 		var entry_cloud_id = getEntryLocal(activity.entry_id)[0].cloud_id;
 		createObjectACS('activities', { id: activity.id,
@@ -409,8 +416,29 @@ function beforeSaving()
 										//facebook_id: activity.facebook_id,
 									});
 									
-	}
-	updateRecordTimesForEntryLocal(activity.entry_id,timeFormatted(new Date()).date,timeFormatted(new Date()).time);
+	}	
+	updateActivityLocal(activity.id, 'updated_at', timeFormatted(new Date()).date+' '+timeFormatted(new Date()).time);	
+	//updateRecordTimesForEntryLocal(activity.entry_id,timeFormatted(new Date()).date,timeFormatted(new Date()).time);
+	
+	var get_record_id = getEntryLocal(activity.entry_id)[0].record_id; 
+	updateRecordLocal(get_record_id, activity.entry_id, 'entries', timeFormatted(new Date()).date, timeFormatted(new Date()).time);
+	
+	var cloud_version = getRecordMainDetailsLocal(get_record_id);
+	cloud_version[0].current = getEntryLocal(activity.id)[0].cloud_id;
+	
+		if(cloud_version[0].cloud_id && Titanium.Network.online) { 
+			Cloud.Objects.update({
+				    classname: 'records',
+				    id: cloud_version[0].cloud_id,
+				    fields: cloud_version[0],
+				}, function (e) {
+				    if (e.success) {
+						 		
+				    } else {
+				        alert('Error:\n' + ((e.error && e.message) || JSON.stringify(e)));
+				    }
+			});
+		}
 	
 	return true;
 }
@@ -668,7 +696,7 @@ if(window.leftNavButton != null) {
 window.rightNavButton.setTouchEnabled(false); 
 window.setTouchEnabled(false);
 table.scrollable = false;
-if(Titanium.Platform.osname == 'iphone') modalPicker.open();
+if(Titanium.Platform.osname == 'iphone') modalPicker.open(); 
 if(Titanium.Platform.osname == 'ipad') modalPicker.show({ view: date, });
 
  
@@ -694,6 +722,20 @@ if(Titanium.Platform.osname == 'ipad') modalPicker.addEventListener('hide', pick
 sectionStatus.addEventListener('click', function(e) {
 	if(e.row.backgroundColor == 'blue') {
 		saveStatusData(e.index);
+		var cloud_version = getActivityStatusDetailsLocal(activity.id);
+		if(cloud_version[0].cloud_id && Titanium.Network.online) { 
+			Cloud.Objects.update({
+				    classname: 'activities',
+				    id: cloud_version[0].cloud_id,
+				    fields: cloud_version[0],
+				}, function (e) {
+				    if (e.success) {
+						 		
+				    } else {
+				        alert('Error:\n' + ((e.error && e.message) || JSON.stringify(e)));
+				    }
+			});
+		}
 		return;
 	}
 });
@@ -762,6 +804,7 @@ rowAdditionalNotes.addEventListener('click', function() {
 	(getNavGroup()).open(additional_notes_page);
 													
 	additional_notes_page.addEventListener('close', function() {
+		if(additional_notes_page.result === additional_notes.text) return;
 		if(!additional_notes_page.result) {
 			additional_notes.text = "No observations";
 		}
@@ -786,6 +829,7 @@ if(isBlurred(e)) {
 	(getNavGroup()).open(goals_page);
 	
 	goals_page.addEventListener('close', function() {
+		if(areArraysSame(activity.goals, goals_page.result)) return; 
 		activity.goals = goals_page.result;
 		if(activity.goals.length == 0) goals_title.text = "No symptoms listed"; 
 		else if(activity.goals.length == 1) goals_title.text = activity.goals.length+" goal listed";
@@ -809,6 +853,7 @@ if(isBlurred(e)) {
 	(getNavGroup()).open(activity_page);
 													
 	activity_page.addEventListener('close', function() {
+		if(activity_page.result === main_activity.text) return;
 		if(!activity_page.result) {
 			main_activity.text = "No activity";
 		}
@@ -1009,6 +1054,7 @@ if(isBlurred(e)) {
 	(getNavGroup()).open(alerts_page);
 	
 	alerts_page.addEventListener('close', function() {
+		if(areArraysSame(activity.times, alerts_page.result)) return; 
 		activity.times = alerts_page.result;
 		frequency.text = activity.times.length;
 		alertsPage_title.text = '('+activity.times.length+') Times for alerts';
@@ -1027,12 +1073,27 @@ sectionDetails.addEventListener('click', function(e) {
 			saveMainActivity();
 			saveDateTimeDetails();
 			
+			var cloud_version = getActivityMainDetailsLocal(activity.id);
+			if(cloud_version[0].cloud_id && Titanium.Network.online) { 
+				Cloud.Objects.update({
+					    classname: 'activities',
+					    id: cloud_version[0].cloud_id,
+					    fields: cloud_version[0],
+					}, function (e) {
+					    if (e.success) {
+					 		
+					    } else {
+					        alert('Error:\n' + ((e.error && e.message) || JSON.stringify(e)));
+					    }
+				});
+			}
+			
 			Ti.App.fireEvent('eventSaved');
 			deactivateSaveButton();
 	}
 })
 
-if(navGroup == undefined) { navGroup = (navGroupWindow.getChildren())[0]; return navGroupWindow; }
+if(navGroupWindow) return navGroupWindow; 
 else return window;
 
 }

@@ -5,18 +5,25 @@ function initAppointmentsDBLocal()
 {
 	Ti.include('ui/common/database/database.js');
 	
-	db.execute('CREATE TABLE IF NOT EXISTS appointments (ID INTEGER PRIMARY KEY AUTOINCREMENT, CLOUD_ID TEXT, ENTRY_ID INTEGER NOT NULL, DATE TEXT NOT NULL, TIME TEXT NOT NULL, DURATION_HOURS TEXT, DURATION_MINUTES TEXT, REPEAT TEXT, ALERT TEXT, STATUS TEXT, DIAGNOSIS TEXT, FINAL_DIAGNOSIS TEXT, ADDITIONAL_NOTES TEXT, FOREIGN KEY(ENTRY_ID) REFERENCES entries (ID))');
+	db.execute('CREATE TABLE IF NOT EXISTS appointments (ID INTEGER PRIMARY KEY AUTOINCREMENT, CLOUD_ID TEXT, ENTRY_ID INTEGER NOT NULL, DATE TEXT NOT NULL, TIME TEXT NOT NULL, DURATION_HOURS TEXT, DURATION_MINUTES TEXT, REPEAT TEXT, ALERT TEXT, STATUS TEXT, DIAGNOSIS TEXT, FINAL_DIAGNOSIS TEXT, ADDITIONAL_NOTES TEXT, CREATED_AT TEXT, UPDATED_AT TEXT, FOREIGN KEY(ENTRY_ID) REFERENCES entries (ID))');
 	db.execute('CREATE TABLE IF NOT EXISTS appointment_doctors (APPOINTMENT_ID INTEGER NOT NULL, NAME TEXT, LOCATION TEXT, STREET TEXT, CITY TEXT, STATE TEXT, ZIP INTEGER, COUNTRY TEXT, FOREIGN KEY(APPOINTMENT_ID) REFERENCES appointments (ID))');
 	db.execute('CREATE TABLE IF NOT EXISTS appointment_symptoms (APPOINTMENT_ID INTEGER NOT NULL, SYMPTOM TEXT NOT NULL, FOREIGN KEY(APPOINTMENT_ID) REFERENCES appointments (ID))');
 }
 
 
-function insertAppointmentLocal(entry_id, date, time) 
+function insertAppointmentLocal(entry_id, date, time, created_at, updated_at) 
 { 
-	var sql = "INSERT INTO appointments (entry_id, date, time) VALUES ("; 
+	Ti.include('ui/common/helpers/dateTime.js');
+	var json_date = generateJsonDateString();
+	if(!created_at) created_at = json_date;
+	if(!updated_at) updated_at = json_date;
+	
+	var sql = "INSERT INTO appointments (entry_id, date, time, created_at, updated_at) VALUES ("; 
 	sql = sql + "" + entry_id + ", ";
-	sql = sql + "'" + date.replace("'", "''") + "', ";	 
-	sql = sql + "'" + time.replace("'", "''") + "')";
+	sql = sql + "'" + date.replace("'", "''") + "', ";
+	sql = sql + "'" + time.replace("'", "''") + "', ";
+	sql = sql + "'" + created_at + "', ";	 
+	sql = sql + "'" + updated_at + "')";
 	db.execute(sql); 
 	
 	return db.lastInsertRowId; 
@@ -78,6 +85,8 @@ function getAppointmentResultSet(resultSet, results)
 		   	  repeat: resultSet.fieldByName('repeat'),
 		   	  alert: resultSet.fieldByName('alert'),
 		   	  additional_notes: resultSet.fieldByName('additional_notes'),
+		   	  created_at: resultSet.fieldByName('created_at'),
+		   	  updated_at: resultSet.fieldByName('updated_at'),
 	        });
 	        
 	resultSet.next();
@@ -92,7 +101,50 @@ function getAppointmentResultSet(resultSet, results)
     return results;	
 }
 
+function getAppointmentStatusResultSet(resultSet, results)
+{
+	while (resultSet.isValidRow()) {
+			results.push({
+			  id: resultSet.fieldByName('id'),
+			  cloud_id: resultSet.fieldByName('cloud_id'),
+		   	  status: resultSet.fieldByName('status'),
+		   	  additional_notes: resultSet.fieldByName('additional_notes'),
+	        });
+	        
+	resultSet.next();
+    }
+    resultSet.close();
+    
+    return results;	
+}
 
+function getAppointmentMainResultSet(resultSet, results)
+{
+	while (resultSet.isValidRow()) {
+			results.push({
+			  id: resultSet.fieldByName('id'),
+			  cloud_id: resultSet.fieldByName('cloud_id'),
+		   	  date: resultSet.fieldByName('date'),
+		   	  time: resultSet.fieldByName('time'),
+		   	  duration: { 
+		   	  	hours: parseInt(resultSet.fieldByName('duration_hours')),
+		   	  	minutes: parseInt(resultSet.fieldByName('duration_minutes')),
+		   	  },
+		   	  repeat: resultSet.fieldByName('repeat'),
+		   	  alert: resultSet.fieldByName('alert'),
+	        });
+	        
+	resultSet.next();
+    }
+    resultSet.close();
+    
+    for(var i=0; i < results.length; i++) {
+    	results[i].doctor = getDoctorByAppointmentLocal(results[i].id)[0];
+    	results[i].symptoms = getSymptomsOfAppointmentLocal(results[i].id);
+    }
+    
+    return results;	
+}
 
 function getAllAppointmentsLocal()
 {
@@ -127,19 +179,6 @@ function getAppointmentByCloudIdLocal(cloud_id)
 }
 
 
-
-function getAppointmentByCloudIdLocal(cloud_id) 
-{ 
-	var sql = "SELECT * FROM appointments WHERE CLOUD_ID='"+cloud_id+"'"; 
-	
-	var results = [];
-	var resultSet = db.execute(sql);
-
-	return getAppointmentResultSet(resultSet, results);
-}
-
-
-
 function getAppointmentLocal(appointment_id) 
 { 
 	var sql = "SELECT * FROM appointments WHERE ID='"+appointment_id+"'"; 
@@ -150,7 +189,25 @@ function getAppointmentLocal(appointment_id)
 	return getAppointmentResultSet(resultSet, results);
 }
 
+function getAppointmentStatusDetailsLocal(appointment_id) 
+{ 
+	var sql = "SELECT * FROM appointments WHERE ID='"+appointment_id+"'"; 
+	
+	var results = [];
+	var resultSet = db.execute(sql);
 
+	return getAppointmentStatusResultSet(resultSet, results);
+}
+
+function getAppointmentMainDetailsLocal(appointment_id) 
+{ 
+	var sql = "SELECT * FROM appointments WHERE ID='"+appointment_id+"'"; 
+	
+	var results = [];
+	var resultSet = db.execute(sql);
+
+	return getAppointmentMainResultSet(resultSet, results);
+}
 
 function getDoctorByAppointmentLocal(appointment_id) 
 {

@@ -5,7 +5,7 @@ function initTreatmentsDBLocal()
 {
 	Ti.include('ui/common/database/database.js');
 	
-	db.execute('CREATE TABLE IF NOT EXISTS treatments (ID INTEGER PRIMARY KEY AUTOINCREMENT, CLOUD_ID TEXT, ENTRY_ID INTEGER, APPOINTMENT_ID INTEGER, START_DATE TEXT NOT NULL,END_DATE TEXT NOT NULL,MEDICATION TEXT, PRESCRIBED_BY TEXT, DIAGNOSIS TEXT, TYPE TEXT, DOSAGE TEXT, FREQUENCY TEXT, INTERVAL TEXT, ALERT TEXT, STATUS TEXT, ADDITIONAL_NOTES TEXT, FACEBOOK_ID TEXT, SUCCESSFUL TEXT, FOREIGN KEY(ENTRY_ID) REFERENCES entries (ID), FOREIGN KEY(APPOINTMENT_ID) REFERENCES appointments (ID))');
+	db.execute('CREATE TABLE IF NOT EXISTS treatments (ID INTEGER PRIMARY KEY AUTOINCREMENT, CLOUD_ID TEXT, ENTRY_ID INTEGER, APPOINTMENT_ID INTEGER, START_DATE TEXT NOT NULL,END_DATE TEXT NOT NULL,MEDICATION TEXT, PRESCRIBED_BY TEXT, DIAGNOSIS TEXT, TYPE TEXT, DOSAGE TEXT, FREQUENCY TEXT, INTERVAL TEXT, ALERT TEXT, STATUS TEXT, ADDITIONAL_NOTES TEXT, CREATED_AT TEXT, UPDATED_AT TEXT, FACEBOOK_ID TEXT, SUCCESSFUL TEXT, FOREIGN KEY(ENTRY_ID) REFERENCES entries (ID), FOREIGN KEY(APPOINTMENT_ID) REFERENCES appointments (ID))');
 	db.execute('CREATE TABLE IF NOT EXISTS treatment_times (TREATMENT_ID INTEGER NOT NULL, TIME TEXT NOT NULL, FOREIGN KEY(TREATMENT_ID) REFERENCES treatments (ID))');
 	db.execute('CREATE TABLE IF NOT EXISTS treatment_symptoms (TREATMENT_ID INTEGER NOT NULL, SYMPTOM TEXT NOT NULL, FOREIGN KEY(TREATMENT_ID) REFERENCES treatments (ID))');
 	db.execute('CREATE TABLE IF NOT EXISTS treatment_sideEffects (TREATMENT_ID INTEGER NOT NULL, SIDE_EFFECT TEXT NOT NULL, FOREIGN KEY(TREATMENT_ID) REFERENCES treatments (ID))');
@@ -14,9 +14,14 @@ function initTreatmentsDBLocal()
 
 
 //Removed quotes from entry_id and appointment_id to allow for null values
-function insertTreatmentLocal(entry_id, appointment_id, start_date, end_date, medication, type, dosage, frequency, interval, alert) 
-{ 
-	var sql = "INSERT INTO treatments (entry_id, appointment_id, start_date, end_date, medication, type, dosage, frequency, interval, alert) VALUES ("; 
+function insertTreatmentLocal(entry_id, appointment_id, start_date, end_date, medication, type, dosage, frequency, interval, alert, created_at, updated_at) 
+{
+	Ti.include('ui/common/helpers/dateTime.js');
+	var json_date = generateJsonDateString();
+	if(!created_at) created_at = json_date;
+	if(!updated_at) updated_at = json_date;
+	 
+	var sql = "INSERT INTO treatments (entry_id, appointment_id, start_date, end_date, medication, type, dosage, frequency, interval, alert, created_at, updated_at) VALUES ("; 
 	sql = sql + "" + entry_id + ", ";
 	sql = sql + "" + appointment_id + ", ";
 	sql = sql + "'" + start_date.replace("'", "''") + "', ";
@@ -26,7 +31,9 @@ function insertTreatmentLocal(entry_id, appointment_id, start_date, end_date, me
 	sql = sql + "'" + dosage.replace("'", "''") + "', ";
 	sql = sql + "'" + frequency + "', "; 
 	sql = sql + "'" + interval.replace("'", "''") + "', ";
-	sql = sql + "'" + alert.replace("'", "''") + "')";
+	sql = sql + "'" + alert.replace("'", "''") + "', ";
+	sql = sql + "'" + created_at + "', ";
+	sql = sql + "'" + updated_at + "')";
 	db.execute(sql); 
 	
 	return db.lastInsertRowId; 
@@ -103,7 +110,8 @@ function getTreatmentResultSet(resultSet, results)
 		   	  additional_notes: resultSet.fieldByName('additional_notes'),
 		   	  dosage: resultSet.fieldByName('dosage'),
 		   	  frequency: resultSet.fieldByName('frequency'),
-		   	  successful: resultSet.fieldByName('successful'),
+		   	  created_at: resultSet.fieldByName('created_at'),
+		   	  updated_at: resultSet.fieldByName('updated_at'),
 		   	  facebook_id: resultSet.fieldByName('facebook_id'),
 	        });
 	resultSet.next();
@@ -115,6 +123,50 @@ function getTreatmentResultSet(resultSet, results)
     	results[i].symptoms = getSymptomsOfTreatmentLocal(results[i].id);
     	results[i].sideEffects = getSideEffectsOfTreatmentLocal(results[i].id);
     }	
+    
+    return results;
+}
+
+function getTreatmentStatusResultSet(resultSet, results)
+{
+	while (resultSet.isValidRow()) {
+			results.push({
+			  id: resultSet.fieldByName('id'),
+			  cloud_id: resultSet.fieldByName('cloud_id'),
+		   	  status: resultSet.fieldByName('status'),
+		   	  additional_notes: resultSet.fieldByName('additional_notes'),
+	        });
+	resultSet.next();
+    }
+    resultSet.close();
+    
+    return results;
+}
+
+function getTreatmentMainResultSet(resultSet, results)
+{
+	while (resultSet.isValidRow()) {
+			results.push({
+			  id: resultSet.fieldByName('id'),
+			  cloud_id: resultSet.fieldByName('cloud_id'),
+		   	  start_date: resultSet.fieldByName('start_date'),
+		   	  end_date: resultSet.fieldByName('end_date'),
+		   	  medication: resultSet.fieldByName('medication'),
+		   	  diagnosis: resultSet.fieldByName('diagnosis'),
+		   	  type: resultSet.fieldByName('type'),
+		   	  interval: resultSet.fieldByName('interval'),
+		   	  alert: resultSet.fieldByName('alert'),
+		   	  dosage: resultSet.fieldByName('dosage'),
+		   	  frequency: resultSet.fieldByName('frequency'),
+	        });
+	resultSet.next();
+    }
+    resultSet.close();
+    
+    for(var i=0; i < results.length; i++) {
+    	results[i].times = getTimesOfTreatmentLocal(results[i].id);
+    	results[i].symptoms = getSymptomsOfTreatmentLocal(results[i].id);
+    }
     
     return results;
 }
@@ -180,6 +232,26 @@ function getTreatmentLocal(treatment_id)
 	var resultSet = db.execute(sql);	
 
 	return getTreatmentResultSet(resultSet, results);
+}
+
+function getTreatmentStatusDetailsLocal(treatment_id) 
+{ 
+	var sql = "SELECT * FROM treatments WHERE ID='"+treatment_id+"'"; 
+	
+	var results = [];
+	var resultSet = db.execute(sql);	
+
+	return getTreatmentStatusResultSet(resultSet, results);
+}
+
+function getTreatmentMainDetailsLocal(treatment_id) 
+{ 
+	var sql = "SELECT * FROM treatments WHERE ID='"+treatment_id+"'"; 
+	
+	var results = [];
+	var resultSet = db.execute(sql);	
+
+	return getTreatmentMainResultSet(resultSet, results);
 }
 
 function getTimesOfTreatmentLocal(treatment_id) 

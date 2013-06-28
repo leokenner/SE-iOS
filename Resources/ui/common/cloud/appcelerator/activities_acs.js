@@ -39,7 +39,8 @@ function getActivitiesACS(query)
 				    	appointment_id = '"'+appointment[0].id+'"';	
 						entry_id = '"'+entry[0].id+'"';
 						var activity_local_id = insertActivityLocal(entry_id, appointment_id, activity.main_activity, 
-																activity.start_date, activity.end_date, activity.frequency, activity.interval, activity.alert);
+																activity.start_date, activity.end_date, activity.frequency, 
+																activity.interval, activity.alert, activity.created_at, activity.updated_at);
 																
 					updateActivityLocal(activity_local_id, 'status', activity.status);
 					//updateActivityLocal(activity_local_id, 'recommended_by', activity.recommended_by);
@@ -72,7 +73,7 @@ function updateActivitiesACS()
 		if(activities[i].appointment_id) activities[i].appointment_id = getAppointmentLocal(activities[i].appointment_id)[0].cloud_id;
 		activities[i].entry_id = getEntryLocal(activities[i].entry_id)[0].cloud_id;
 		 
-		if(activities[i].cloud_id) { 
+		if(activities[i].cloud_id && Titanium.Network.online) { 
 			Cloud.Objects.update({
 				    classname: 'activities',
 				    id: activities[i].cloud_id,

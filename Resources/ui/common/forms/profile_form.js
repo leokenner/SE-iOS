@@ -1,19 +1,28 @@
 
 
-function profile(child)
+function profile(input, navGroup)
 {
 	Ti.include('ui/common/helpers/dateTime.js');
 	Ti.include('ui/common/database/database.js');
+	
+	input.sex = input.sex?input.sex:'Unknown';
+	input.date_of_birth = input.date_of_birth?input.date_of_birth:new Date().toDateString().slice(4);
+	input.diagnosis = input.diagnosis?input.diagnosis:'';
+	for(x in input.relationships) {
+		input.relationships[x].relation = input.relationships[x].relation?input.relationships[x].relation:'Relation Unknow: Tap to change';
+	}
 		
 	var win = Ti.UI.createWindow({
-		title: 'Child Profile',
+		title: input.first_name+"'s Details",
 		backgroundColor: 'white'
 	});
-	win.hideTabBar();
 	
-	var navGroupWindow = require('ui/handheld/ApplicationNavGroup');
-	navGroupWindow = new navGroupWindow(win);
-	navGroupWindow.result = null;
+	if(!navGroup)
+	{ 
+		var navGroupWindow = require('ui/handheld/ApplicationNavGroup');
+		navGroupWindow = new navGroupWindow(win);
+		navGroup = (navGroupWindow.getChildren())[0];
+	}
 	
 	var cancel_btn = Ti.UI.createButton({
 		systemButton: Titanium.UI.iPhone.SystemButton.CANCEL
@@ -21,7 +30,18 @@ function profile(child)
 	win.leftNavButton = cancel_btn;
 	
 	cancel_btn.addEventListener('click', function() {
-		navGroupWindow.close();
+		if(navGroupWindow) {
+			var animation = Ti.UI.createAnimation({
+				top: Titanium.Platform.displayCaps.platformHeight*0.9,
+				curve: Ti.UI.ANIMATION_CURVE_EASE_IN,
+				duration: 500
+			});
+			navGroupWindow.animate(animation);
+			animation.addEventListener('complete', function() {
+				navGroupWindow.close();
+			});
+		}
+		else navGroup.close(win);
 	});
 	
 	var save_btn = Ti.UI.createButton({
@@ -30,7 +50,6 @@ function profile(child)
 	win.rightNavButton = save_btn;
 	
 	save_btn.addEventListener('click', function() {
-		if(table.scrollable == false) { return; }
 	var fname = false,
     	lname = false;	
 	var onlyLetters = /^[a-zA-Z]*$/.test(first_name.value);
@@ -41,34 +60,46 @@ function profile(child)
 	else { alert('Last name must be longer than one character and contain only letters'); }
 		
 	if(fname && lname) {
-		updateChildLocal(child.id,first_name.value,last_name.value,sex.text,date_of_birth.text,diagnosis.value);
-		//Prev relation was unknown. New relation is known. 
-		//This shows that the relationship was changed for the first time. 
-		//Therefore insert new
-		if(child.relationship.relation.charAt(0) == 'R' && fmember_rel.text.charAt(0) != 'R') {
-			var row_id = insertRelationshipLocal(child.id,child.relationship.id,fmember_rel.text);
-		}
-		//If the current value is not the same as the previous value, update
-		else if(child.relationship.relation != fmember_rel.text) {
-			updateRelationshipLocal(child.id,child.relationship.id,fmember_rel.text);
-		}
- 
-		child.first_name = first_name.value,
-		child.last_name = last_name.value,
-		child.sex = sex.text,
-		child.date_of_birth = date_of_birth.text,
-		child.diagnosis = diagnosis.value,
-		child.relationship.relation = fmember_rel.text,
+		updateChildLocal(input.id, 'first_name', first_name.value);
+		updateChildLocal(input.id, 'last_name', last_name.value);
+		updateChildLocal(input.id, 'sex', sex.text);
+		updateChildLocal(input.id, 'date_of_birth', date_of_birth.text);
+		updateChildLocal(input.id, 'diagnosis', diagnosis.value);
+		updateRelationshipLocal(input.id,input.relationships[0].user_id,fmember_rel.text);
 		
-		navGroupWindow.result = child;
+		var cloud_version = getChildMainDetailsLocal(input.id);
+		Cloud.Objects.update({
+				    classname: 'children',
+				    id: cloud_version[0].cloud_id,
+				    fields: cloud_version[0],
+				}, function (e) {
+				    if (e.success) {
+						 updateChildLocal(input.id, 'updated_at', e.children[0].updated_at);	
+				    } else {
+				        Ti.API.info('Error:\n' + ((e.error && e.message) || JSON.stringify(e))+'\n Entries');
+				    }
+			});
+		
 		Ti.App.fireEvent('profileChanged');
-		navGroupWindow.close();
+		if(navGroupWindow) {
+			var animation = Ti.UI.createAnimation({
+				top: Titanium.Platform.displayCaps.platformHeight*0.9,
+				curve: Ti.UI.ANIMATION_CURVE_EASE_IN,
+				duration: 500
+			});
+			navGroupWindow.animate(animation);
+			animation.addEventListener('complete', function() {
+				navGroupWindow.close();
+			});
+		}
+		else navGroup.close(win);
 	}	
 	});
 	
 	
 	var table = Ti.UI.createTableView({
-		style: 1,
+		top: 0,
+		scrollable: false,
 		rowHeight: 45,
 	});
 	
@@ -76,29 +107,29 @@ function profile(child)
 	sectionMain.add(Ti.UI.createTableViewRow());
 	sectionMain.add(Ti.UI.createTableViewRow());
 	sectionMain.add(Ti.UI.createTableViewRow());
-	//sectionMain.add(Ti.UI.createTableViewRow());
+	sectionMain.add(Ti.UI.createTableViewRow());
 	sectionMain.add(Ti.UI.createTableViewRow());
 	
 	var lastName_title = Titanium.UI.createLabel({ text: 'Last Name', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
-	var last_name = Ti.UI.createTextField({ hintText: 'Last Name', value: child.last_name, left: '45%', width: '55%' });
+	var last_name = Ti.UI.createTextField({ hintText: 'Last Name', value: input.last_name, left: '45%', width: '55%' });
 	var firstName_title = Titanium.UI.createLabel({ text: 'First Name', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
-	var first_name = Ti.UI.createTextField({ hintText: 'First Name', value: child.first_name, left: '45%', width: '55%' });
+	var first_name = Ti.UI.createTextField({ hintText: 'First Name', value: input.first_name, left: '45%', width: '55%' });
 	var sex_title = Titanium.UI.createLabel({ text: 'Sex', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
 	var sex = Ti.UI.createLabel({ 
-		text: child.sex?child.sex:'Unknown', 
+		text: input.sex, 
 		left: '45%', 
 		width: '55%' 
 		});
 	var dateOfBirth_title = Titanium.UI.createLabel({ text: 'Date of Birth', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
 	var date_of_birth = Ti.UI.createLabel({ 
-		text: child.date_of_birth?child.date_of_birth:new Date().toDateString().slice(4), 
+		text: input.date_of_birth, 
 		left: '45%', 
 		width: '55%' 
 		});
 	var diagnosis_title = Titanium.UI.createLabel({ text: 'Diagnosis', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
 	var diagnosis = Ti.UI.createTextField({ 
 		hintText: 'Enter diagnosis',
-		value: child.diagnosis?child.diagnosis:null,
+		value: input.diagnosis,
 		left: '45%', 
 		width: '55%' 
 		});
@@ -109,25 +140,58 @@ function profile(child)
 	sectionMain.rows[1].add(last_name);
 	sectionMain.rows[2].add(sex_title);
 	sectionMain.rows[2].add(sex);
-	//sectionMain.rows[3].add(dateOfBirth_title);
-	//sectionMain.rows[3].add(date_of_birth);
-	sectionMain.rows[3].add(diagnosis_title);
-	sectionMain.rows[3].add(diagnosis);
+	sectionMain.rows[3].add(dateOfBirth_title);
+	sectionMain.rows[3].add(date_of_birth);
+	sectionMain.rows[4].add(diagnosis_title);
+	sectionMain.rows[4].add(diagnosis);
 	
 	
 	var sectionFamily = Ti.UI.createTableViewSection({ headerTitle: 'Parents' });
 	sectionFamily.add(Ti.UI.createTableViewRow({ height: 60 }));
 	
-	var fmember_name = Ti.UI.createLabel({ text: child.relationship.name, font: {fontWeight: 'bold', fontSize: 20 }, left: 10, top: 5 });
-	var fmember_rel = Ti.UI.createLabel({ text: child.relationship.relation, font: { fontSize: 15 }, left: 10, top: 25 });
+	var user_name = getUserLocal(input.relationships[0].user_id);
+	user_name = user_name[0].first_name+' '+user_name[0].last_name;
+	var fmember_name = Ti.UI.createLabel({ text: user_name, font: {fontWeight: 'bold', fontSize: 20 }, left: 10, top: 5 });
+	var fmember_rel = Ti.UI.createLabel({ text: input.relationships[0].relation, font: { fontSize: 15 }, left: 10, top: 25 });
 	
 	sectionFamily.rows[0].add(fmember_name);
 	sectionFamily.rows[0].add(fmember_rel);
 	
 	table.data = [sectionMain,sectionFamily];
-	
+	setTableHeight(table);
+		
 	win.add(table);
 	
+	var delete_individual = Ti.UI.createView({
+		height: 50,
+		width: 250,
+		top: table.top+table.height+10,
+		backgroundColor: 'red',
+	});
+	
+	var delete_txt = Ti.UI.createLabel({
+		color: 'white',
+		text: 'Delete Record Book',
+	});
+	delete_individual.add(delete_txt);
+	
+	win.add(delete_individual);
+
+function setTableHeight(table)
+{
+	var height=0;
+	
+	for(var i=0; i < table.data.length; i++) {
+		if(table.data[i].headerView) height += table.data[i].headerView.height;
+		else height += 22;
+		
+		for(var j=0; j < table.data[i].rows.length; j++) {
+			if(table.data[i].rows[j].height) height += table.data[i].rows[j].height;
+			else height += 45;
+		}
+	}
+	table.setHeight(height);
+}
 	
 	
 function changeDate(object)
@@ -216,8 +280,52 @@ sectionFamily.addEventListener('click', function(e) {
 	launchModalPicker(data,e.row.children[1]);
 });
 
+delete_individual.addEventListener('click', function() {
+	var confirm = Titanium.UI.createAlertDialog({ title: 'Are you sure you want to delete this record book?', 
+									message: 'All personal details and records will also be deleted. This cannot be undone', 
+									buttonNames: ['Yes','No'], cancel: 1 });
+								
+		confirm.addEventListener('click', function(g) { 
+   				//Clicked cancel, first check is for iphone, second for android
+   				if (g.cancel === g.index || g.cancel === true) { return; }
 
-return navGroupWindow;	
+
+  			 	switch (g.index) {
+     		 	case 0:
+     		 		if(!Titanium.Network.online) {
+     		 			alert('You do not have an internet connection');
+     		 			return;
+     		 		}
+     		 	
+     		  		input.cloud_id = input.cloud_id?input.cloud_id:getChildLocal(input.id)[0].cloud_id;
+					deleteChildLocal(input.id);			
+					deleteObjectACS('children', input.cloud_id);
+					Ti.App.fireEvent('eventSaved'); //This is to delete all related local notifications
+					
+      				if(navGroupWindow) {
+      					var animation = Ti.UI.createAnimation({
+							top: Titanium.Platform.displayCaps.platformHeight*0.9,
+							curve: Ti.UI.ANIMATION_CURVE_EASE_IN,
+							duration: 500
+						});
+						navGroupWindow.animate(animation);
+						animation.addEventListener('complete', function() {
+							navGroupWindow.close();
+						});
+      				}
+      				else navGroup.close(window);
+      				break;
+
+      		 	case 1:       			
+      		 	default: break;
+  				}
+		});
+		confirm.show();
+});
+
+
+if(navGroupWindow) return navGroupWindow;
+else return win;	
 	
 }
 

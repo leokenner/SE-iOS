@@ -209,3 +209,30 @@ function hoursMinutesToMilliseconds(hours, minutes)
 	return (((hours*60)+minutes)*60)*1000;
 }
 
+function generateJsonDateString()
+{
+	var d = new Date();
+	d.setMonth(d.getMonth()+1);
+	d.setMinutes(d.getMinutes()+d.getTimezoneOffset());
+	var json_date = d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate()+'T'+d.getHours()+':'+d.getMinutes()+':'+d.getSeconds()+'+0000';
+	
+	return json_date;
+}
+
+function jsonDateToRegularDateString(json_date)
+{
+	json_date = JSON.stringify(json_date);
+	json_date = json_date.replace(new RegExp("-", 'g'), "/");
+	json_date = json_date.replace('T',' ');
+	json_date = json_date.replace(new RegExp('"', 'g'), '');
+	
+	return json_date;
+}
+
+function jsonDateStringTimeFormatted(json_date_string)
+{
+	var date_object = new Date(json_date_string);
+	
+	return timeFormatted(date_object);
+}
+

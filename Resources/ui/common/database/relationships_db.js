@@ -24,14 +24,12 @@ function updateRelationshipLocal(child_id,user_id, relation)
 	sql = sql + child_id+ "' AND USER_ID='";
 	sql = sql + user_id+ "'"; 
 
-	db.execute(sql);
-	alert('update: '+sql); 
-	 
+	db.execute(sql);	 
 }
 
 function getRelationshipLocal(user_id,child_id) 
 { 
-	if(user_id == null || child_id == null) { return; }
+	if(!user_id || !child_id) { return; }
 	var sql = "SELECT relation FROM relationships WHERE USER_ID='"+user_id+"' AND CHILD_ID='";
 	sql = sql + child_id + "'";
 	var result = db.execute(sql);

@@ -22,14 +22,19 @@ function getChildrenACS(query)
 				    child.sex = child.sex?'"'+child.sex+'"':null;
 				    child.date_of_birth = child.date_of_birth?'"'+child.date_of_birth+'"':null;
 					child.diagnosis = child.diagnosis?'"'+child.diagnosis+'"':null;
-					var child_local_id = insertChildLocal(Titanium.App.Properties.getString('user'), child.first_name, child.last_name, child.sex ,child.date_of_birth , child.diagnosis);
+					var child_local_id = insertChildLocal(Titanium.App.Properties.getString('user'), 
+															child.first_name, 
+															child.last_name, 
+															child.sex ,
+															child.date_of_birth , 
+															child.diagnosis,
+															child.created_at,
+															child.updated_at);
 					updateChildCloudIdLocal(child_local_id, child.id);
 					for(var j=0; j < relationships.length; j++) {
 						insertRelationshipLocal(child_local_id,Titanium.App.Properties.getString('user'),relationships[j].relation);
 					}
-					//getRecordsACS({ user_id: query.user_id, child_id: child.id }, child_local_id);
 				}
-				//Ti.App.fireEvent('loadChildrenFromCloudComplete');
 				getRecordsACS({ user_id: query.user_id, });
 				
 			}
@@ -53,7 +58,7 @@ function updateChildrenACS()
 		children[i].user_id = user.cloud_id;
 		children[i].relationships = relationships;
 		 
-		if(children[i].cloud_id) { 
+		if(children[i].cloud_id && Titanium.Network.online) { 
 			Cloud.Objects.update({
 				    classname: 'children',
 				    id: children[i].cloud_id,

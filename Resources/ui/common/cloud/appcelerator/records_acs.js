@@ -12,23 +12,28 @@ function getRecordsACS(query /*, new_child_id */)
 						updateObjectACS('records', record.id, record);
 						continue;
 					}
-					
-					if(record.child_id==null || record.child_id==undefined || /^\d+$/.test(record.child_id)) { 
+
+					if(!record.child_id || /^\d+$/.test(record.child_id)) { 
 				    	deleteObjectACS('records', record.id);
 				    	 continue; 
 				    }
 					
-					var new_child_id = getChildByCloudId(record.child_id)[0].id;
+					var the_child = getChildByCloudId(record.child_id);
 					
-					if(new_child_id==null || new_child_id==undefined) {
+					if(!the_child) {
 						deleteObjectACS('records', record.id);
 						continue;
 					}
+					if(!the_child[0]) {
+						deleteObjectACS('records', record.id);
+						continue;
+					}
+					var new_child_id = the_child[0].id;
 					
 					var record_local_id = insertRecordLocal(new_child_id);
 					updateRecordCloudIdLocal(record_local_id, record.id);
-					updateRecordLocal(record_local_id, 100, 'entry', record.latest_date, record.latest_time);
-					//getEntriesACS({ user_id: query.user_id, record_id: record.id, }, record_local_id, record.latest_date, record.latest_time)
+					updateRecordLocal(record_local_id, 'created_at', record.created_at);
+					updateRecordLocal(record_local_id, 'updated_at', record.updated_at);
 				}
 				getEntriesACS({ user_id: query.user_id, });
 			}
@@ -49,7 +54,7 @@ function updateRecordsACS()
 		records[i].child_id = getChildLocal(records[i].child_id)[0].cloud_id;
 		records[i].current = getEntryLocal(records[i].current)[0].cloud_id;
 			 
-		if(records[i].cloud_id) { 
+		if(records[i].cloud_id && Titanium.Network.online) { 
 			Cloud.Objects.update({
 				    classname: 'records',
 				    id: records[i].cloud_id,
@@ -69,13 +74,34 @@ function updateRecordsACS()
 }
 
 
-function createRecordsACS()
+function createRecordsACS(record, entry)
 {
-	var records = getAllRecordsLocal();
-	
-	for(var i=0; i < records.length; i++) {
-		if(!records[i].cloud_id) {
-			createObjectACS('records', records[i]);
-		}
-	}
+	Cloud.Objects.create({
+    		classname: 'records',
+    		fields: record
+		}, 
+		function (e) {
+    		if (e.success) {
+        		updateRecordCloudIdLocal(record.id, e.records[0].id);
+        		
+        		entry.record_id = e.records[0].id;
+        		
+        		Cloud.Objects.create({
+		    		classname: 'entries',
+		    		fields: entry
+				}, 
+				function (e) {
+		    		if (e.success) {
+		        		updateRecordCloudIdLocal(entry.id, e.entries[0].id);
+						
+		    		} else {
+		        		Ti.API.info('Error:\n' + ((e.error && e.message) || JSON.stringify(e))+' object creation');
+		    		}
+			});
+        		
+				
+    		} else {
+        		Ti.API.info('Error:\n' + ((e.error && e.message) || JSON.stringify(e))+' object creation');
+    		}
+	});
 }
