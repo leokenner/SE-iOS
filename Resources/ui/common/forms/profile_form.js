@@ -80,6 +80,7 @@ function profile(input, navGroup)
 				    }
 			});
 		
+		Ti.App.fireEvent('eventSaved');  //the local notifications need to be reset in the event of a change here
 		Ti.App.fireEvent('profileChanged');
 		if(navGroupWindow) {
 			var animation = Ti.UI.createAnimation({
@@ -296,7 +297,7 @@ delete_individual.addEventListener('click', function() {
      		 			alert('You do not have an internet connection');
      		 			return;
      		 		}
-     		 	
+     		 		Ti.App.fireEvent('eventSaved');
      		  		input.cloud_id = input.cloud_id?input.cloud_id:getChildLocal(input.id)[0].cloud_id;
 					deleteChildLocal(input.id);			
 					deleteObjectACS('children', input.cloud_id);

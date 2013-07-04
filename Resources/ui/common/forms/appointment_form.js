@@ -35,6 +35,28 @@ function appointment(input, navGroup)
 								},		
 	}
 	
+	if(Titanium.App.Properties.getString('child')) {
+		var _individual = getChildLocal(Titanium.App.Properties.getString('child'))[0].first_name+
+						' '+getChildLocal(Titanium.App.Properties.getString('child'))[0].last_name;
+	}
+	else if(appointment.entry_id) {
+		var record_id = getEntryLocal(appointment.entry_id)[0].record_id;
+		var child_id = getRecordLocal(record_id)[0].child_id;
+		var _individual = getChildLocal(child_id)[0].first_name+
+						' '+getChildLocal(child_id)[0].last_name;
+	}
+	else {
+		var _individual=null;
+	}
+	
+	var _entry={
+		id: appointment.entry_id,
+		date: appointment.entry_id?getEntryLocal(appointment.entry_id)[0].date:timeFormatted(new Date()).date,
+		time: appointment.entry_id?getEntryLocal(appointment.entry_id)[0].time:timeFormatted(new Date()).time,
+		main_entry: appointment.entry_id?getEntryLocal(appointment.entry_id)[0].main_entry:undefined,
+	}; //This is for the meta data section, it shows the related entry if it hasnt been saved yet
+	
+	
 	appointment.activities = getActivitiesForAppointmentLocal(appointment.id);
 	appointment.treatments = getTreatmentsForAppointmentLocal(appointment.id);
 	
@@ -55,7 +77,6 @@ function appointment(input, navGroup)
 		var navGroupWindow = require('ui/handheld/ApplicationNavGroup');
 			navGroupWindow = new navGroupWindow(window);
 			navGroup = (navGroupWindow.getChildren())[0];
-			navGroupWindow.result = null;
 	}
 	
 	function getNavGroup()
@@ -86,7 +107,7 @@ function appointment(input, navGroup)
 	cancel_btn.addEventListener('click', function() {
 		if(appointment.id == null) {
 			if(navGroupWindow) navGroupWindow.close();
-			else window.close();
+			else navGroup.close(window);
 			return;
 		}
 		var confirm = Titanium.UI.createAlertDialog({ title: 'Are you sure you want to delete the record of this appointment?', 
@@ -104,7 +125,6 @@ function appointment(input, navGroup)
      		  	appointment.cloud_id = appointment.cloud_id?appointment.cloud_id:getAppointmentLocal(appointment.id)[0].cloud_id;
 				deleteAppointmentLocal(appointment.id);			
 				deleteObjectACS('appointments', appointment.cloud_id);
-				navGroupWindow.result = -1;
       			if(navGroupWindow) navGroupWindow.close();
       			else navGroup.close(window);
       			break;
@@ -162,15 +182,6 @@ function appointment(input, navGroup)
 				saveStatusData();
 				saveDetails();
 				
-				appointment.doctor.name = name.value;
-				appointment.doctor.location = location.value;
-				appointment.doctor.street = street.value;
-				appointment.doctor.city = city.value;
-				appointment.doctor.state = state.value;
-				appointment.doctor.zip = zip.value;
-				appointment.doctor.country = country.value;
-				appointment.status = status.text;
-				appointment.diagnosis = diagnosis.value;
 				if(navGroupWindow) {
 					navGroupWindow.result = appointment;
 					navGroupWindow.close();
@@ -279,7 +290,31 @@ if(appointment.id) {
 	sectionDetails.rows[sectionDetails.rowCount-1].add(Ti.UI.createLabel({ text: 'No changes made', textAlign: 'center', font: { fontSize: 15, }, }));
 }
 
+var sectionMetaData = Ti.UI.createTableViewSection();
+sectionMetaData.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', height: 100, hasChild: true }));
+var individual_str = _individual?"Individual: "+_individual:'Click here to choose the individual this entry relates to. Select a name from the existing list '+
+																	'or enter a new name\n WARNING: This cannot be changed once the appointment has been created';
+var individual = Ti.UI.createLabel({ left: 15, width: '90%', text: individual_str, font: { fontSize: 14, }, });
+if(individual_str.charAt(0) != 'C') {
+	individual.font = { fontWeight: 'bold', fontSize: '20' };
+	sectionMetaData.rows[0].setBackgroundColor('#D4CFCF');
+}
+sectionMetaData.rows[0].add(individual);
+var entry_dateTime_str = _entry.id?'On '+_entry.date+' at '+_entry.time:'';
+var entry_dateTime = Ti.UI.createLabel({ left: 15, top: 5, width: '90%', text: entry_dateTime_str, font: { fontSize: 14, }, });
 
+var entry_str = _entry.main_entry?_entry.main_entry:"What event led to this appointment? You can choose from an existing entry or write a new entry.\n"+
+															"WARNING: You cannot change this once the appointment has been created";
+var entry = Ti.UI.createLabel({ left: 15, width: '90%', text: entry_str, font: { fontSize: 14, }, });
+
+if(individual_str.charAt(0) != 'C') { 
+	sectionMetaData.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', height: 100, hasChild: true }));
+	sectionMetaData.rows[1].add(entry_dateTime);
+	sectionMetaData.rows[1].add(entry);
+}
+if(_entry.main_entry) {
+	sectionMetaData.rows[1].setBackgroundColor('#D4CFCF');
+}
 
 //Rules for what to display as the status
 if(appointment.status === 'Completed' || appointment.status === 'Cancelled') {
@@ -297,10 +332,20 @@ if(appointment.id && !isValidDateTime(appointment.date+' '+appointment.time) && 
 //If its incomplete, just show status section
 //If its being filled out for the first time, ie: appointment.id does not exist, do not show status
 if(appointment.id) {
-	table.data = [sectionStatus, sectionDetails];
+	if(Titanium.App.Properties.getString('child')) {
+		table.data = [sectionStatus, sectionDetails];
+	}
+	else {
+		table.data = [sectionMetaData, sectionStatus, sectionDetails];
+	}
 }
 else {
-	table.data = sectionDetails;
+	if(Titanium.App.Properties.getString('child')) {
+		table.data = sectionDetails;
+	}
+	else {
+		table.data = [sectionMetaData, sectionDetails];
+	}
 }
 
 window.add(table);
@@ -317,15 +362,62 @@ function beforeSaving()
 		return false;
 	}
 	
-	if(appointment.entry_id == null) {
-		alert('logic for this not entered. must find an existing entry based on diagnosis, category, symptoms/goals');
-		return false;
+	appointment.doctor.name = name.value;
+	appointment.doctor.location = location.value;
+	appointment.doctor.street = street.value;
+	appointment.doctor.city = city.value;
+	appointment.doctor.state = state.value;
+	appointment.doctor.zip = zip.value;
+	appointment.doctor.country = country.value;
+	appointment.status = status.text;
+	//appointment.diagnosis = diagnosis.value;
+				
+	if(!appointment.entry_id) {
+		if(Titanium.App.Properties.getString('child')) {
+			//This will never be the case
+		}
+		//Created from the home screen. No child pre-selected
+		else {
+			if(individual.text.charAt(0) != 'I') {
+				alert('You have not mentioned which individual this appointment is for');
+				table.scrollToIndex(0);
+				return;
+			}
+			if(!_entry.main_entry) {
+				alert('You have not mentioned an entry that this appointment is related to');
+				table.scrollToIndex(0);
+				return;
+			}
+			var indiv_name = individual.text.split(': ')[1];
+		    var indiv_first_name = indiv_name.split(' ')[0];
+		    var indiv_last_name = indiv_name.split(' ')[1];
+		    
+			var _child = getChildByNameLocal(indiv_first_name, indiv_last_name);
+			if(_child.length == 0) { //This individual doesnt exist, need to create new record book
+		     		var row_id = insertChildLocal(Titanium.App.Properties.getString('user'), indiv_first_name,indiv_last_name,null,null,null);
+					insertRelationshipLocal(row_id, Titanium.App.Properties.getString('user'), 'Relation Unknown: Tap to change');
+					alert(indiv_name+" did not have a record book with StarsEarth. One has been created from them. You can find it in the main menu");
+			}			
+			if(!appointment.entry_id) {
+				if(!_entry.id) {
+					if(_child.length > 0) var record_id = insertRecordLocal(_child[0].id);
+					else if(row_id) var record_id = insertRecordLocal(row_id);
+					appointment.entry_id = _entry.id = insertEntryLocal(record_id, _entry.main_entry, _entry.date, _entry.time);
+				}
+				else {
+					appointment.entry_id = _entry.id;
+				}
+			}	
+		}
+		
 	}
 	
-	if(appointment.id == null) {
-		var entry_id = '"'+appointment.entry_id+'"';
+	if(!appointment.id) {
+		appointment.id = insertAppointmentLocal(appointment.entry_id, appointment.date, appointment.time);
+		createAppointmentACS(appointment, _entry);
+	/*	var entry_id = '"'+appointment.entry_id+'"';
 		var entry_cloud_id = getEntryLocal(appointment.entry_id)[0].cloud_id; 
-		appointment.id = insertAppointmentLocal(entry_id, appointment.date, appointment.time);
+		
 		createObjectACS('appointments', { id: appointment.id, 
 										entry_id:  entry_cloud_id, 
 										diagnosis: null, //diagnosis.value,
@@ -348,15 +440,15 @@ function beforeSaving()
 											country: country.value,
 											}
 									});
+									*/
 	}
 	updateRecordTimesForEntryLocal(appointment.entry_id,timeFormatted(new Date()).date,timeFormatted(new Date()).time);
-	//updateAppointmentLocal(appointment.id, 'updated_at', timeFormatted(new Date()).date+' '+timeFormatted(new Date()).time);
+	updateAppointmentLocal(appointment.id, 'updated_at', timeFormatted(new Date()).date+' '+timeFormatted(new Date()).time);
 	
+	appointment.entry_id = _entry.id;
 	var get_record_id = getEntryLocal(appointment.entry_id)[0].record_id;
-	updateRecordLocal(get_record_id, appointment.entry_id, 'entries', timeFormatted(new Date()).date, timeFormatted(new Date()).time);
 	 
 	var cloud_version = getRecordMainDetailsLocal(get_record_id);
-	cloud_version[0].current = getEntryLocal(appointment.entry_id);
 	
 		if(cloud_version[0].cloud_id && Titanium.Network.online) { 
 			Cloud.Objects.update({
@@ -385,7 +477,7 @@ function activateSaveButton()
 
 function deactivateSaveButton()
 {
-	if(sectionDetails.rows[sectionDateTime.rowCount-1].backgroundColor == '#CCC') { 
+	if(sectionDetails.rows[sectionDetails.rowCount-1].backgroundColor == '#CCC') { 
 		sectionDetails.rows[sectionDetails.rowCount-1].backgroundColor = 'blue';
 		sectionDetails.rows[sectionDetails.rowCount-1].children[0].text = 'Save Changes';
 	}
@@ -466,8 +558,7 @@ function changeStatusAndUnblur()
 function saveStatus(row_index)
 {
 	updateAppointmentLocal(appointment.id, 'status', status.text);
-	
-	if(row_index == undefined) row_index = sectionStatus.rowCount-1;
+
 	if(sectionStatus.rows[row_index].backgroundColor == 'blue')	{
 		sectionStatus.rows[row_index].backgroundColor = '#CCC';
 		sectionStatus.rows[row_index].children[0].text = 'Changes Saved!';
@@ -477,9 +568,7 @@ function saveStatus(row_index)
 function saveAdditionalNotes(row_index)
 {	
 	updateAppointmentLocal(appointment.id, 'additional_notes', additional_notes.text);
-	sectionStatus.rows[row_index].children[0].text = 'Changes Saved';
 	
-	if(row_index == undefined) row_index - sectionStatus.rowCount-1;
 	if(!sectionStatus.rows[row_index+1] && status.text === 'Completed') {
 		table.insertRowAfter(row_index, rowNextActions);
 	}
@@ -488,10 +577,13 @@ function saveAdditionalNotes(row_index)
 function saveStatusData(row_index)
 {
 	if(!beforeSaving()) return;
+	
+	if(!row_index) row_index = sectionStatus.rowCount-1;
 	saveStatus(row_index);
 	saveAdditionalNotes(row_index);
 	
 	if(sectionStatus.rows[row_index].backgroundColor == 'blue') {
+		sectionStatus.rows[row_index].children[0].text = 'Changes Saved';
 		sectionStatus.rows[row_index].backgroundColor = '#CCC';
 	}
 }
@@ -975,6 +1067,56 @@ sectionDetails.addEventListener('click', function(e) {
 	}
 });
 
+individual.addEventListener('click', function(e) {
+	if(e.row.backgroundColor == '#D4CFCF') {
+		alert('Sorry, this cannot be changed');
+		return;
+	}
+	var select_individual_page = require('ui/common/helpers/search_items');
+	var the_individuals = getChildByUserIdLocal(Titanium.App.Properties.getString('user'));
+	for(x in the_individuals) the_individuals[x] = the_individuals[x].first_name+' '+the_individuals[x].last_name;
+	select_individual_page = new select_individual_page(navGroup, the_individuals, 'Select Individual');
+	(getNavGroup()).open(select_individual_page);
+	
+	select_individual_page.addEventListener('close', function() { 
+		if(select_individual_page.result) {
+			individual.text = 'Individual: '+select_individual_page.result;
+			individual.font = { fontWeight: 'bold', fontSize: '20', };
+			
+			if(sectionMetaData.rowCount > 1) return;
+			var row = Ti.UI.createTableViewRow({ height: 100, hasChild: true });
+			row.add(entry_dateTime);
+			row.add(entry);
+			table.insertRowAfter(0, row, { animated: true });
+		}
+	});
+});
+
+entry.addEventListener('click', function(e) {
+	if(e.row.backgroundColor == '#D4CFCF') {
+		alert('Sorry, this cannot be changed');
+		return;
+	}
+	var select_entry_page = require('ui/common/helpers/search_entries');
+	var indiv_name = individual.text.split(': ')[1];
+	var indiv_first_name = indiv_name.split(' ')[0];
+	var indiv_last_name = indiv_name.split(' ')[1];
+	var new_individual = getChildByNameLocal(indiv_first_name, indiv_last_name)[0];
+	var the_records = [];
+	var the_entries = [];
+	if(new_individual) the_records = getRecordsForChildLocal(new_individual.id);
+	for(x in the_records) the_entries.push(getEntryBy('record_id', the_records[x].id)[0]);
+	select_entry_page = new select_entry_page(navGroup, the_entries, _entry, 'Select/Create Entry');
+	(getNavGroup()).open(select_entry_page);
+	
+	select_entry_page.addEventListener('close', function() { 
+		if(select_entry_page.result.main_entry) {
+			entry_dateTime.text = 'On '+select_entry_page.result.date+' at '+select_entry_page.result.time;
+			entry.text = select_entry_page.result.main_entry;
+			_entry = select_entry_page.result;
+		}
+	});
+});
 
 if(navGroupWindow) return navGroupWindow;
 else return window;

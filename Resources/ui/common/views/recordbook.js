@@ -3,9 +3,7 @@
 function recordbook(input, navGroup) {
 
 	Ti.include('ui/common/helpers/dateTime.js');
-	Ti.include('ui/common/database/database.js');
-	
-var records = getRecordsForChildLocal(input.id);	
+	Ti.include('ui/common/database/database.js');	
 
 
 	//get the index at which to insert the new time
@@ -163,8 +161,9 @@ function loadRecord(record)
 	explanation_label.hide();
 }
 
-function loadRecords()
+function loadRecords(records)
 {	
+	for(x in table.data) table.deleteSection(x);
 	for(var i=0; i < records.length; i++) loadRecord(records[i]);
 	
 	if(records.length == 0) explanation_label.show();
@@ -176,7 +175,7 @@ var self = Titanium.UI.createView({
 });
 self.result=null;
 
-if(navGroup == undefined) { 
+if(!navGroup) { 
 	var navGroupWindow = require('ui/handheld/ApplicationNavGroup');
 		navGroupWindow = new navGroupWindow(self);
 		navGroup = (navGroupWindow.getChildren())[0];
@@ -185,7 +184,7 @@ if(navGroup == undefined) {
 
 function getNavGroup()
 {
-	if(navGroupWindow != undefined) return (navGroupWindow.getChildren())[0];
+	if(navGroupWindow) return (navGroupWindow.getChildren())[0];
 	else return navGroup; 
 }
 
@@ -226,10 +225,10 @@ var explanation_label = Ti.UI.createView({
 });
 var explanation_text = Ti.UI.createLabel({ width: 230,
 											textAlign: 'center',
-											text: "This is "+input.first_name+" "+input.last_name+"'s record book. Here "+
+										/*	text: "This is "+input.first_name+" "+input.last_name+"'s record book. Here "+
 													"you can record new entries, and schedule corresponding appointments, activities and "+
 													"treatments. You can return at any time to view these records. To create a new record, press "+
-													"the 'New Record' button above.",
+													"the 'New Record' button above.", */
 										});			
 explanation_label.add(explanation_text);
 self.add(explanation_label);
@@ -237,7 +236,30 @@ explanation_label.hide();
 
 self.add(table);
 
-loadRecords();
+
+var load_page =  function() {
+	if(!Titanium.App.Properties.getString('child')) return;
+	var child_id = Titanium.App.Properties.getString('child');
+	var child = getChildLocal(child_id);
+	explanation_text.text= "This is "+child[0].first_name+" "+child[0].last_name+"'s record book. Here "+
+													"you can record new entries, and schedule corresponding appointments, activities and "+
+													"treatments. You can return at any time to view these records. To create a new record, press "+
+													"the 'New Record' button above.";
+	records = getRecordsForChildLocal(child_id);
+	loadRecords(records);
+}
+
+self.addEventListener('postlayout', load_page);
+Ti.App.addEventListener('changeUser', load_page);
+
+Ti.App.addEventListener('profileChanged', function() {
+	var child_id = Titanium.App.Properties.getString('child');
+	var child = getChildLocal(child_id);
+	explanation_text.text= "This is "+child[0].first_name+" "+child[0].last_name+"'s record book. Here "+
+													"you can record new entries, and schedule corresponding appointments, activities and "+
+													"treatments. You can return at any time to view these records. To create a new record, press "+
+													"the 'New Record' button above.";
+});
 
 newRecord_btn.addEventListener('click', function() {
 	var entry_form = require('ui/common/forms/entry_form');
@@ -257,21 +279,23 @@ newRecord_btn.addEventListener('click', function() {
 });
 
 table.addEventListener('click', function(e) {
-	var record = require('ui/common/views/record');
-	record = new record(e.row.object, navGroup);
-	(getNavGroup()).open(record);
+	var open_record = require('ui/common/views/record');
+	open_record = new open_record(e.row.object, navGroup);
+	(getNavGroup()).open(open_record);
 	
-	record.addEventListener('close', function() {
+	open_record.addEventListener('closed', function() {
 		table.deleteRow(e.row);
 		var record = getRecordLocal(e.row.object.id);
 		if(record.length > 0) {
 			loadRecord(record[0]);
 			return;
-		}
+		} 
 		
-		var all_records = getRecordsForChildLocal(input.id);
+		var all_records = getRecordsForChildLocal(Titanium.App.Properties.getString('child'));
 		if(all_records.length == 0) explanation_label.show();
-	});
+		
+		delete open_record;
+	}); 
 });
 
 	if(navGroupWindow) return navGroupWindow; 

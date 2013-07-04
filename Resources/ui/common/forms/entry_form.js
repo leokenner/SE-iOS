@@ -18,15 +18,30 @@ function entry_form(input, navGroup)
 		updated_at: input.updated_at?input.updated_at:generateJsonDateString(),
 	}
 	
+	if(Titanium.App.Properties.getString('child')) {
+		var _individual = getChildLocal(Titanium.App.Properties.getString('child'))[0].first_name+
+						' '+getChildLocal(Titanium.App.Properties.getString('child'))[0].last_name;
+	}
+	else if(entry.record_id) {
+		var child_id = getRecordLocal(entry.record_id)[0].child_id;
+		var _individual = getChildLocal(child_id)[0].first_name+
+						' '+getChildLocal(child_id)[0].last_name;
+	}
+	else {
+		var _individual=null;
+	}
+																
+	
 		
 	var window = Ti.UI.createWindow({
 		title: 'Entry',
 		backgroundColor: 'white'
 	});
 	
-	if(navGroup == undefined) { 
+	if(!navGroup) { 
 		var navGroupWindow = require('ui/handheld/ApplicationNavGroup');
 			navGroupWindow = new navGroupWindow(window);
+			navGroup = (navGroupWindow.getChildren())[0];
 			navGroupWindow.result = null;
 	}
 	
@@ -159,7 +174,7 @@ function entry_form(input, navGroup)
 		}
 	});
 	
-	if(!input.record_id) {
+	if(!input.record_id && Titanium.App.Properties.getString('child')) {
 		var the_message = Ti.UI.createView({
 			width: '100%',
 			zIndex: 3,
@@ -180,7 +195,7 @@ function entry_form(input, navGroup)
 		scrollable: false,
 		top: 0,
 	});
-	if(!input.record_id) table.setTop(70);
+	if(!input.record_id && Titanium.App.Properties.getString('child')) table.setTop(70);
 	
 	var sectionDetails = Ti.UI.createTableViewSection({ headerTitle: ' '});
 	sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', }));
@@ -199,7 +214,24 @@ function entry_form(input, navGroup)
 		sectionDetails.rows[sectionDetails.rowCount-1].add(Ti.UI.createLabel({ text: 'No Change Made', textAlign: 'center', font: { fontSize: 15, }, width: '80%', }));
 	}
 	
-	table.data = [sectionDetails];
+	var sectionMetaData = Ti.UI.createTableViewSection();
+	sectionMetaData.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', height: 60, hasChild: true }));
+	var individual_str = _individual?"Individual: "+_individual:'Click here to choose the individual this entry relates to. Select a name from the existing list '+
+																	'or enter a new name.\n WARNING: This cannot be changed once entry is created.';
+	var individual = Ti.UI.createLabel({ left: 15, width: '90%', height: '100%', text: individual_str, font: { fontSize: 15, }, });
+	if(individual_str.charAt(0) != 'C') {
+		individual.font = { fontWeight: 'bold', fontSize: '20' };
+		sectionMetaData.rows[0].setBackgroundColor('#D4CFCF');
+	}
+	sectionMetaData.rows[0].add(individual);
+	
+	if(Titanium.App.Properties.getString('child')) {
+		table.data = [sectionDetails];
+	}
+	else {
+		table.data = [sectionMetaData, sectionDetails];
+	}
+	
 	setTableHeight(table);
 	
 	window.add(table);
@@ -228,7 +260,24 @@ function beforeSaving()
 	}
 	
 	if(!entry.record_id) {
-		entry.record_id = insertRecordLocal(Titanium.App.Properties.getString('child'));
+		if(Titanium.App.Properties.getString('child')) {
+			entry.record_id = insertRecordLocal(Titanium.App.Properties.getString('child'));
+		}
+		//Created from the home screen. No child pre-selected
+		else {
+			var indiv_name = individual.text.split(': ')[1];
+		    var indiv_first_name = indiv_name.split(' ')[0];
+		    var indiv_last_name = indiv_name.split(' ')[1];
+		    
+			var _child = getChildByNameLocal(indiv_first_name, indiv_last_name);
+			if(_child.length == 0) { //This individual doesnt exist, need to create new record book
+		     		var row_id = insertChildLocal(Titanium.App.Properties.getString('user'), indiv_first_name,indiv_last_name,null,null,null);
+					insertRelationshipLocal(row_id, Titanium.App.Properties.getString('user'), 'Relation Unknown: Tap to change');
+					alert(indiv_name+" did not have a record book with StarsEarth. One has been created from them. You can find it in the main menu");
+			}
+			if(_child.length > 0) entry.record_id = insertRecordLocal(_child[0].id);
+			else if(row_id) entry.record_id = insertRecordLocal(row_id);
+		}
 	}
 	
 	entry.main_entry = main_entry.text;
@@ -383,8 +432,27 @@ sectionDetails.addEventListener('click', function(e) {
 	}
 });
 
+individual.addEventListener('click', function(e) {
+	if(e.row.backgroundColor == '#D4CFCF') {
+		alert('Sorry, this cannot be changed');
+		return;
+	}
+	var select_individual_page = require('ui/common/helpers/search_items');
+	var the_individuals = getChildByUserIdLocal(Titanium.App.Properties.getString('user'));
+	for(x in the_individuals) the_individuals[x] = the_individuals[x].first_name+' '+the_individuals[x].last_name;
+	select_individual_page = new select_individual_page(navGroup, the_individuals, 'Select Individual');
+	(getNavGroup()).open(select_individual_page);
+	
+	select_individual_page.addEventListener('close', function() { 
+		if(select_individual_page.result) {
+			individual.text = 'Individual: '+select_individual_page.result;
+			individual.font = { fontWeight: 'bold', fontSize: '20', };
+		}
+	});
+});
 
-if(navGroup == undefined) { navGroup = (navGroupWindow.getChildren())[0]; return navGroupWindow; }
+
+if(navGroupWindow) return navGroupWindow; 
 else return window;	
 	
 }

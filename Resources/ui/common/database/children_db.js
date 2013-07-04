@@ -124,8 +124,9 @@ function getChildByCloudIdLocal(cloud_id) {
 	return getChildrenResultSet(resultSet, results);
 }
 
-function getChildByNameLocal(first_name, last_name) { 
-	var sql = "SELECT * FROM children WHERE FIRST_NAME='"+first_name+"' AND LAST_NAME='"+last_name+"'";
+function getChildByUserIdLocal(user_id)
+{
+	var sql = "SELECT * FROM children WHERE USER_ID='"+user_id+"'";
 	
 	var results = [];
 	var resultSet = db.execute(sql);		
@@ -133,13 +134,11 @@ function getChildByNameLocal(first_name, last_name) {
 	return getChildrenResultSet(resultSet, results);
 }
 
-
-function getChildByCloudId(cloud_id)
-{
-	var sql = "SELECT * FROM children WHERE CLOUD_ID='"+cloud_id+"'";
+function getChildByNameLocal(first_name, last_name) { 
+	var sql = "SELECT * FROM children WHERE FIRST_NAME='"+first_name+"' AND LAST_NAME='"+last_name+"'";
 	
 	var results = [];
-	var resultSet = db.execute(sql);	
+	var resultSet = db.execute(sql);		
 
 	return getChildrenResultSet(resultSet, results);
 }

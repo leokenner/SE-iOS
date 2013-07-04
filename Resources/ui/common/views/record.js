@@ -118,7 +118,10 @@ var close_btn = Titanium.UI.createButton({
 
 close_btn.addEventListener('click', function() {
 	if(navGroupWindow != undefined) navGroupWindow.close();
-	else navGroup.close(self);
+	else {
+		self.fireEvent('closed');
+		navGroup.close(self);
+	}
 });
 self.leftNavButton = close_btn;
 
@@ -172,7 +175,10 @@ table.addEventListener('entryEdited', function(e) {
 	var entries = getEntryBy('record_id', e.source.object.record_id);
 	if(entries.length == 0) {
 		if(navGroupWindow) navGroupWindow.close();
-		else navGroup.close(self);
+		else {
+			self.fireEvent('closed');
+			navGroup.close(self);
+		}
 	}
 });
 

@@ -76,11 +76,11 @@ function updateRecordLocal(record_id, column, data)
 	db.execute(sql);
 }
 
-function updateRecordTimesForEntryLocal(current, updated_at) 
+function updateRecordTimesForEntryLocal(record_id, updated_at) 
 { 
 	var sql = "UPDATE records SET ";
-	sql = sql + "UPDATED_AT='"+latest_time+"' ";
-	sql = sql + "WHERE CURRENT='"+current+"'"; 
+	sql = sql + "UPDATED_AT='"+updated_at+"' ";
+	sql = sql + "WHERE ID='"+record_id+"'"; 
 	
 	db.execute(sql); 
 	

@@ -18,7 +18,7 @@ function getRecordsACS(query /*, new_child_id */)
 				    	 continue; 
 				    }
 					
-					var the_child = getChildByCloudId(record.child_id);
+					var the_child = getChildByCloudIdLocal(record.child_id);
 					
 					if(!the_child) {
 						deleteObjectACS('records', record.id);
