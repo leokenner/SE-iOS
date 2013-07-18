@@ -38,12 +38,9 @@ function updateTable()
 	sql[2] = "DROP TABLE IF EXISTS entries";
 	sql[3] = "DROP TABLE IF EXISTS children";
 	sql[4] = "DROP TABLE IF EXISTS activities";
-	sql[5] = "DROP TABLE IF EXISTS records";
-/*	sql[6] = "DROP TABLE IF EXISTS incident_symptoms";
-	sql[7] = "DROP TABLE IF EXISTS incidents";
-	sql[8] = "DROP TABLE IF EXISTS records";
-	sql[9] = "DROP TABLE IF EXISTS relationships";
-	sql[10] = "DROP TABLE IF EXISTS children"; */
+	sql[5] = "DROP TABLE IF EXISTS activity_times";
+	sql[6] = "DROP TABLE IF EXISTS records";
+	sql[7] = "DROP TABLE IF EXISTS treatment_times";
 	for(var i=0;i<sql.length;i++) {
 		db.execute(sql[i]);
 	}

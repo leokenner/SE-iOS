@@ -72,7 +72,8 @@ function createEntryACS(entry)
 {
 	var record_cloud_id = getRecordLocal(entry.record_id)[0].cloud_id;
 	if(record_cloud_id) {
-		entry.record_id = record_cloud_id; 
+		entry.child_id = getChildLocal(getRecordLocal(entry.record_id)[0].child_id)[0].cloud_id;
+		entry.record_id = record_cloud_id; 		
 		
 		Cloud.Objects.create({
 		    		classname: 'entries',
@@ -120,6 +121,7 @@ function createEntryACS(entry)
 				        		updateRecordLocal(record.id, 'created_at', e.records[0].created_at);
 				        		updateRecordLocal(record.id, 'updated_at', e.records[0].updated_at);
 				        		
+				        		entry.child_id = record.child_id;
 				        		entry.record_id = e.records[0].id;
 				        		
 				        		Cloud.Objects.create({
@@ -164,6 +166,7 @@ function createEntryACS(entry)
 		        		updateRecordLocal(record.id, 'created_at', e.records[0].created_at);
 		        		updateRecordLocal(record.id, 'updated_at', e.records[0].updated_at);
 		        		
+		        		entry.child_id = record.child_id;
 		        		entry.record_id = e.records[0].id;
 		        		
 		        		Cloud.Objects.create({

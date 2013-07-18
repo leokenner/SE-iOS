@@ -6,7 +6,7 @@ function initTreatmentsDBLocal()
 	Ti.include('ui/common/database/database.js');
 	
 	db.execute('CREATE TABLE IF NOT EXISTS treatments (ID INTEGER PRIMARY KEY AUTOINCREMENT, CLOUD_ID TEXT, ENTRY_ID INTEGER, APPOINTMENT_ID INTEGER, START_DATE TEXT NOT NULL,END_DATE TEXT NOT NULL,MEDICATION TEXT, PRESCRIBED_BY TEXT, DIAGNOSIS TEXT, TYPE TEXT, DOSAGE TEXT, FREQUENCY TEXT, INTERVAL TEXT, ALERT TEXT, STATUS TEXT, ADDITIONAL_NOTES TEXT, CREATED_AT TEXT, UPDATED_AT TEXT, FACEBOOK_ID TEXT, SUCCESSFUL TEXT, FOREIGN KEY(ENTRY_ID) REFERENCES entries (ID), FOREIGN KEY(APPOINTMENT_ID) REFERENCES appointments (ID))');
-	db.execute('CREATE TABLE IF NOT EXISTS treatment_times (TREATMENT_ID INTEGER NOT NULL, TIME TEXT NOT NULL, FOREIGN KEY(TREATMENT_ID) REFERENCES treatments (ID))');
+	db.execute('CREATE TABLE IF NOT EXISTS treatment_times (TREATMENT_ID INTEGER NOT NULL, TIME TEXT NOT NULL, CALENDAR_EVENT_ID TEXT, FOREIGN KEY(TREATMENT_ID) REFERENCES treatments (ID))');
 	db.execute('CREATE TABLE IF NOT EXISTS treatment_symptoms (TREATMENT_ID INTEGER NOT NULL, SYMPTOM TEXT NOT NULL, FOREIGN KEY(TREATMENT_ID) REFERENCES treatments (ID))');
 	db.execute('CREATE TABLE IF NOT EXISTS treatment_sideEffects (TREATMENT_ID INTEGER NOT NULL, SIDE_EFFECT TEXT NOT NULL, FOREIGN KEY(TREATMENT_ID) REFERENCES treatments (ID))');
 	
@@ -120,6 +120,7 @@ function getTreatmentResultSet(resultSet, results)
     
     for(var i=0; i < results.length; i++) {
     	results[i].times = getTimesOfTreatmentLocal(results[i].id);
+    	results[i].calendar_event_ids = getEventIdsOfTreatmentLocal(results[i].id);
     	results[i].symptoms = getSymptomsOfTreatmentLocal(results[i].id);
     	results[i].sideEffects = getSideEffectsOfTreatmentLocal(results[i].id);
     }	
@@ -165,6 +166,7 @@ function getTreatmentMainResultSet(resultSet, results)
     
     for(var i=0; i < results.length; i++) {
     	results[i].times = getTimesOfTreatmentLocal(results[i].id);
+    	results[i].calendar_event_ids = getEventIdsOfTreatmentLocal(results[i].id);
     	results[i].symptoms = getSymptomsOfTreatmentLocal(results[i].id);
     }
     
@@ -194,7 +196,7 @@ function getTreatmentsForEntryLocal(entry_id)
 
 function getOnlyTreatmentsForEntryLocal(entry_id) 
 { 
-	var sql = "SELECT * FROM treatments WHERE ENTRY_ID='"+entry_id+"' AND APPOINTMENT_ID=null"; 
+	var sql = "SELECT * FROM treatments WHERE ENTRY_ID='"+entry_id+"' AND APPOINTMENT_ID IS NULL"; 
 	
 	var results = [];
 	var resultSet = db.execute(sql);	
@@ -269,6 +271,22 @@ function getTimesOfTreatmentLocal(treatment_id)
 	return results;
 }
 
+function getEventIdsOfTreatmentLocal(treatment_id, time)
+{
+	var sql = "SELECT * FROM treatment_times WHERE TREATMENT_ID='"+treatment_id+"'";
+	if(time) sql += " AND TIME='"+time+"'";
+	
+	var results = [];
+	var resultSet = db.execute(sql);
+    while (resultSet.isValidRow()) { 
+    	results.push(resultSet.fieldByName('calendar_event_id'));
+		resultSet.next();
+    }
+    resultSet.close();		
+
+	return results;
+}
+
 
 function getSymptomsOfTreatmentLocal(treatment_id) 
 {
@@ -312,6 +330,19 @@ function updateTreatmentLocal(treatment_id, column, data)
 	db.execute(sql);
 }
 
+function updateTreatmentTimesLocal(treatment_id, time, column, data)
+{
+	var intRegex = /^\d+$/;
+	if(intRegex.test(data)) {}   //The replacing quotes function throws an error if you use it on an integer
+	else if(!data) { data=''; }
+	else { data = data.replace("'","''"); }
+	
+	var sql = "UPDATE treatment_times SET "+column+"='"+data+"' ";
+	sql = sql + "WHERE TREATMENT_ID='"+treatment_id+"' AND TIME='"+time+"'"; 
+	
+	db.execute(sql);
+}
+
 function updateTreatmentStatus(treatment_id, status)
 {
 	var sql = "UPDATE treatments SET STATUS='"+status+"'";
@@ -331,7 +362,7 @@ function deleteTreatmentsTableLocal()
 
 function deleteTreatmentLocal(treatment_id)
 {
-	deleteTimesForTreatmentLocal(treatment.id);
+	deleteTimesForTreatmentLocal(treatment_id);
 	deleteSymptomsForTreatmentLocal(treatment_id);
 	deleteSideEffectsForTreatmentLocal(treatment_id);
 	

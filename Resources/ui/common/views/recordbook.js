@@ -22,7 +22,7 @@ function recordbook(input, navGroup) {
 		
 		while(1)
 		{
-			if(date == getEntryBy('record_id', array[mid].object.id)[0].updated_at) return -2;
+			if(date == getEntryBy('record_id', array[mid].object.id)[0].updated_at) return mid;
 			if(start >= end) {
 				if(date < getEntryBy('record_id', array[end].object.id)[0].updated_at) {
 					return end;

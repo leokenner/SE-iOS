@@ -161,6 +161,19 @@ function deleteEntriesTableLocal()
 
 function deleteEntryLocal(id)
 {
+	var activities = getActivitiesForEntryLocal(id);
+	for(x in activities) {
+		deleteActivityLocal(activities[x].id);
+	}
+	var treatments = getTreatmentsForEntryLocal(id);
+	for(x in treatments) {
+		deleteTreatmentLocal(treatments[x].id);
+	}
+	var appointments = getAppointmentsForEntryLocal(id);
+	for(x in appointments) {
+		deleteAppointmentLocal(appointments[x].id);
+	}
+	
 	var sql = "DELETE FROM entries WHERE ID='"+id+ "'";
 	db.execute(sql);
 	

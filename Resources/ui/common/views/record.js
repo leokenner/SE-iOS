@@ -20,7 +20,7 @@ function record(input, navGroup) {
 		
 		while(1)
 		{
-			if(date == array[mid].object.updated_at) return -2;
+			if(date == array[mid].object.updated_at) return mid;
 			if(start >= end) {
 				if(date < array[end].object.updated_at) {
 					return end;
@@ -128,7 +128,7 @@ self.leftNavButton = close_btn;
 var add_btn = Titanium.UI.createButton({
 	systemButton: Ti.UI.iPhone.SystemButton.ADD
 });
-self.rightNavButton = add_btn;
+//self.rightNavButton = add_btn;
 
 var actionDialog = Titanium.UI.createOptionDialog({
     options: ['Follow-up Entry','Cancel'],

@@ -16,12 +16,14 @@ if (Ti.version < 1.8 ) {
 
 // This is a single context application with multiple windows in a stack
 (function() {
+
 var Cloud = require('ti.cloud');	
 		
 	Ti.include('ui/common/login_logout.js');
 	Ti.include('ui/common/database/users_db.js');
 	Ti.include('ui/common/database/database.js');
-	Ti.include('ui/common/localnotifications/localnotifications.js');
+	//Ti.include('ui/common/localnotifications/localnotifications.js');
+	Ti.include('ui/common/localnotifications/activities.js');
 	Ti.include('ui/common/cloud/appcelerator/users_acs.js');
 	Ti.include('ui/common/cloud/appcelerator/social/facebook.js');
 	Ti.include('ui/common/cloud/appcelerator/socialIntegrations.js');
@@ -38,7 +40,7 @@ var Cloud = require('ti.cloud');
 		version = Ti.Platform.version,
 		height = Ti.Platform.displayCaps.platformHeight,
 		width = Ti.Platform.displayCaps.platformWidth;
-	
+
 	//considering tablet to have one dimension over 900px - this is imperfect, so you should feel free to decide
 	//yourself what you consider a tablet form factor for android
 	var isTablet = osname === 'ipad' || (osname === 'android' && (width > 899 || height > 899));

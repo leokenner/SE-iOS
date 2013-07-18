@@ -30,13 +30,13 @@ var current = new Date();
 
 
 if(appointment.getFullYear() > current.getFullYear()) { return true; }
-else {
+else if(appointment.getFullYear() == current.getFullYear()) {
 	if(appointment.getMonth() > current.getMonth()) { return true; }
-	else {
+	else if(appointment.getMonth() == current.getMonth()) {
 		if(appointment.getDate() > current.getDate()) { return true; }
-		else {
+		else if(appointment.getDate() == current.getDate()) {
 			if(appointment.getHours() > current.getHours()) { return true; }
-			else {
+			else if(appointment.getHours() == current.getHours()) {
 				if(appointment.getMinutes() > current.getMinutes()) { return true; }
 				else 
 				{ 
@@ -46,9 +46,11 @@ else {
 		}
 	}
  }
+ 
+ return false;
 }
 
-
+//if the date is in the present or future, it is valid
 function isValidDate(apt_date)
 {
 var date = new Date(apt_date);
@@ -87,6 +89,19 @@ else {
 		}
 	}
  }
+}
+
+function areDatesEqual(start_date,end_date)
+{
+	if(!end_date) { var end = new Date(); }
+	else { var end = new Date(end_date); }
+	if(!start_date) { var start = new Date(); }
+	else { var start = new Date(start_date); }	
+
+if(end.getFullYear() != start.getFullYear()) { return false; }
+if(end.getMonth() != start.getMonth()) { return false; }
+if(end.getDate() != start.getDate()) { return false; }
+else return true; 
 }
 
 //input: left_time, right_time: strings
@@ -209,11 +224,18 @@ function hoursMinutesToMilliseconds(hours, minutes)
 	return (((hours*60)+minutes)*60)*1000;
 }
 
-function generateJsonDateString()
+//input: date/time as a string
+function generateJsonDateString(input_date_time)
 {
+	if(input_date_time) var input = new Date(input_date_time);
 	var d = new Date();
-	d.setMonth(d.getMonth()+1);
-	d.setMinutes(d.getMinutes()+d.getTimezoneOffset());
+	
+	if(input_date_time) d.setMonth(input.getMonth());
+	else d.setMonth(d.getMonth()+1);
+	
+	if(input_date_time) d.setMinutes(input.getMinutes());
+	else d.setMinutes(d.getMinutes()+d.getTimezoneOffset());
+	
 	var json_date = d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate()+'T'+d.getHours()+':'+d.getMinutes()+':'+d.getSeconds()+'+0000';
 	
 	return json_date;

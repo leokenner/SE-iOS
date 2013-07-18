@@ -5,7 +5,7 @@ function initAppointmentsDBLocal()
 {
 	Ti.include('ui/common/database/database.js');
 	
-	db.execute('CREATE TABLE IF NOT EXISTS appointments (ID INTEGER PRIMARY KEY AUTOINCREMENT, CLOUD_ID TEXT, ENTRY_ID INTEGER NOT NULL, DATE TEXT NOT NULL, TIME TEXT NOT NULL, DURATION_HOURS TEXT, DURATION_MINUTES TEXT, REPEAT TEXT, ALERT TEXT, STATUS TEXT, DIAGNOSIS TEXT, FINAL_DIAGNOSIS TEXT, ADDITIONAL_NOTES TEXT, CREATED_AT TEXT, UPDATED_AT TEXT, FOREIGN KEY(ENTRY_ID) REFERENCES entries (ID))');
+	db.execute('CREATE TABLE IF NOT EXISTS appointments (ID INTEGER PRIMARY KEY AUTOINCREMENT, CLOUD_ID TEXT, ENTRY_ID INTEGER NOT NULL, DATE TEXT NOT NULL, TIME TEXT NOT NULL, DURATION_HOURS TEXT, DURATION_MINUTES TEXT, REPEAT TEXT, ALERT TEXT, STATUS TEXT, DIAGNOSIS TEXT, FINAL_DIAGNOSIS TEXT, ADDITIONAL_NOTES TEXT, CALENDAR_EVENT_ID TEXT, CREATED_AT TEXT, UPDATED_AT TEXT, FOREIGN KEY(ENTRY_ID) REFERENCES entries (ID))');
 	db.execute('CREATE TABLE IF NOT EXISTS appointment_doctors (APPOINTMENT_ID INTEGER NOT NULL, NAME TEXT, LOCATION TEXT, STREET TEXT, CITY TEXT, STATE TEXT, ZIP INTEGER, COUNTRY TEXT, FOREIGN KEY(APPOINTMENT_ID) REFERENCES appointments (ID))');
 	db.execute('CREATE TABLE IF NOT EXISTS appointment_symptoms (APPOINTMENT_ID INTEGER NOT NULL, SYMPTOM TEXT NOT NULL, FOREIGN KEY(APPOINTMENT_ID) REFERENCES appointments (ID))');
 }
@@ -84,6 +84,7 @@ function getAppointmentResultSet(resultSet, results)
 		   	  },
 		   	  repeat: resultSet.fieldByName('repeat'),
 		   	  alert: resultSet.fieldByName('alert'),
+		   	  calendar_event_id: resultSet.fieldByName('calendar_event_id'),
 		   	  additional_notes: resultSet.fieldByName('additional_notes'),
 		   	  created_at: resultSet.fieldByName('created_at'),
 		   	  updated_at: resultSet.fieldByName('updated_at'),
@@ -132,6 +133,7 @@ function getAppointmentMainResultSet(resultSet, results)
 		   	  },
 		   	  repeat: resultSet.fieldByName('repeat'),
 		   	  alert: resultSet.fieldByName('alert'),
+		   	  calendar_event_id: resultSet.fieldByName('calendar_event_id'),
 	        });
 	        
 	resultSet.next();
@@ -298,6 +300,15 @@ function deleteAppointmentsTableLocal()
 
 function deleteAppointmentLocal(id)
 {
+	var activities = getActivitiesForAppointmentLocal(id);
+	for(x in activities) {
+		deleteActivityLocal(activities[x].id);
+	}
+	var treatments = getTreatmentsForAppointmentLocal(id);
+	for(x in treatments) {
+		deleteTreatmentLocal(treatments[x].id)
+	}
+	
 	deleteDoctorForAppointmentLocal(id);
 	deleteSymptomsForAppointmentLocal(id);
 	

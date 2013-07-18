@@ -171,6 +171,11 @@ function deleteChildByUserIdLocal(user_id)
 
 function deleteChildLocal(id)
 {
+	var records = getRecordsForChildLocal(id);
+	for(x in records) {
+		deleteRecordLocal(records[x].id);
+	}
+	
 	var sql = "DELETE FROM children WHERE ID='"+id+ "'";
 	db.execute(sql);
 }

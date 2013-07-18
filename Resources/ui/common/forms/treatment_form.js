@@ -9,6 +9,7 @@ function treatment(input, navGroup) {
 	Ti.include('ui/common/helpers/dateTime.js');
 	Ti.include('ui/common/helpers/strings.js');
 	Ti.include('ui/common/database/database.js');
+	Ti.include('ui/common/calendar/notifications.js');
 
 //var navGroupWindow = input.navGroupWindow;
 
@@ -28,6 +29,7 @@ var treatment = {
 		interval: input.interval?input.interval:'every day',
 		alert: input.alert?input.alert:'Time of event',
 		times: input.times?input.times:[],
+		calendar_event_ids: input.calendar_event_ids?input.calendar_event_ids:[],
 		localNotifications: input.local_notifications?input.local_notifications:0,
 		categories: input.categories?input.categories:[],
 		symptoms: input.symptoms?input.symptoms:[],
@@ -37,6 +39,27 @@ var treatment = {
 		successful: input.successful?input.successful:'Yes/No?',
 		facebook_id: input.facebook_id?input.facebook_id:null,
 	}
+	
+	if(Titanium.App.Properties.getString('child')) {
+		var _individual = getChildLocal(Titanium.App.Properties.getString('child'))[0].first_name+
+						' '+getChildLocal(Titanium.App.Properties.getString('child'))[0].last_name;
+	}
+	else if(treatment.entry_id) {
+		var record_id = getEntryLocal(treatment.entry_id)[0].record_id;
+		var child_id = getRecordLocal(record_id)[0].child_id;
+		var _individual = getChildLocal(child_id)[0].first_name+
+						' '+getChildLocal(child_id)[0].last_name;
+	}
+	else {
+		var _individual=null;
+	}
+	
+	var _entry={
+		id: treatment.entry_id,
+		date: treatment.entry_id?getEntryLocal(treatment.entry_id)[0].date:timeFormatted(new Date()).date,
+		time: treatment.entry_id?getEntryLocal(treatment.entry_id)[0].time:timeFormatted(new Date()).time,
+		main_entry: treatment.entry_id?getEntryLocal(treatment.entry_id)[0].main_entry:undefined,
+	}; //This is for the meta data section, it shows the related entry if it hasnt been saved yet
 	
 	addRemoveTimes(treatment.frequency - treatment.times.length); 
 	
@@ -49,7 +72,11 @@ var window = Titanium.UI.createWindow({
   title: 'Treatment',
   height: 'auto'
 });
-window.result = null;
+var modalPicker=null;
+window.addEventListener('blur', function() {
+	//If there is a modalPicker open, close it
+	if(modalPicker) modalPicker.close();
+});
 
 if(!navGroup) { 
 	var navGroupWindow = require('ui/handheld/ApplicationNavGroup');
@@ -90,12 +117,16 @@ cancel_btn.addEventListener('click', function() {
 
 
   			 switch (g.index) {
-     		 case 0:
-     		 	Ti.App.fireEvent('eventSaved'); //This is to delete all related local notifications;
-     		 	
+     		 case 0: 		 	
      		  	treatment.cloud_id = treatment.cloud_id?treatment.cloud_id:getTreatmentLocal(treatment.id)[0].cloud_id;
 				deleteTreatmentLocal(treatment.id);			
 				deleteObjectACS('treatments', treatment.cloud_id);
+				var defCalendar = Ti.Calendar.defaultCalendar;
+				for(x in treatment.calendar_event_ids) {
+					if(!treatment.calendar_event_ids[x]) continue; 
+					var event = defCalendar.getEventById(treatment.calendar_event_ids[x]);
+					if(event) event.remove(Titanium.Calendar.SPAN_FUTUREEVENTS);
+				}
       			if(navGroupWindow) navGroupWindow.close();
       			else navGroup.close(window);
       			break;
@@ -149,22 +180,11 @@ save_btn.addEventListener('click', function() {
 			else { 
 				if(!validateTreatmentDetails() || !validateSymptoms()) return;
 				if(!beforeSaving()) return;
-				saveStatus();
-				saveAdditionalNotes();
-				saveTreatmentDetails();
+				saveStatusData();
 				saveSymptoms();
 				saveSideEffects();
+				saveDetails();
 				
-				treatment.start_date = start_date.text;
-				treatment.end_date = end_date.text;
-				treatment.medication = medication.value;
-				treatment.prescribed_by = prescribed_by.value;
-				treatment.diagnosis = diagnosis.value;
-				treatment.type = type.text;
-				treatment.dosage = dosage.value;
-				treatment.frequency = frequency.text;
-				treatment.interval = interval.text;
-				treatment.status = status.text;
 				window.result = treatment;
 				if(navGroupWindow) {
 					navGroupWindow.result = treatment;
@@ -205,7 +225,7 @@ if(treatment.id) {
 	sectionStatus.add(Ti.UI.createTableViewRow({ backgroundColor: '#CCC', })); 
 	sectionStatus.rows[sectionStatus.rowCount-1].add(Ti.UI.createLabel({ text: 'No Change Made', textAlign: 'center', font: { fontSize: 15, }, width: '80%', }));
 }
-
+/*
 var sectionPatient = Ti.UI.createTableViewSection({ headerTitle: 'Patient (required)', });
 sectionPatient.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', }));
 var patient_title = Titanium.UI.createLabel({ text: '*Individual', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
@@ -218,7 +238,7 @@ if(treatment.id) {
 	sectionPatient.add(Ti.UI.createTableViewRow({ backgroundColor: '#CCC', }));
 	sectionPatient.rows[sectionPatient.rowCount-1].add(Ti.UI.createLabel({ text: 'No Change Made', textAlign: 'center', font: { fontSize: 15, }, }));
 }
-
+*/
 var sectionDetails= Ti.UI.createTableViewSection({ headerTitle: 'Medication details(*=required)', });
 sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
 sectionDetails.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white' }));
@@ -289,24 +309,6 @@ if(treatment.id) {
 	sectionDetails.rows[sectionDetails.rowCount-1].add(Ti.UI.createLabel({ text: 'No Change Made', textAlign: 'center', font: { fontSize: 15, }, }));
 }
 
-/*
-var sectionOutcome = Ti.UI.createTableViewSection();
-sectionOutcome.add(Ti.UI.createTableViewRow({ height: 45, selectedBackgroundColor: 'white' }));
-var success_title = Titanium.UI.createLabel({ text: 'Successful?', left: 15, font: { fontWeight: 'bold', fontSize: 18, }, });
-var successful_switcher = Titanium.UI.createSwitch({ value: treatment.successful, right: 10 });
-sectionOutcome.rows[0].add(success_title);
-sectionOutcome.rows[0].add(successful_switcher);
-
-successful_switcher.addEventListener('change', function() {
-		if(successful_switcher.value == true && Titanium.Network.online && 
-			Titanium.Facebook.loggedIn && treatment.facebook_id == null) { 
-			sectionShare.rows[0].backgroundColor = 'blue';
-			return;
-		}
-		sectionShare.rows[0].backgroundColor = '#CCC';
-	});
-*/
-
 var sectionShare = Ti.UI.createTableViewSection();
 	sectionShare.add(Ti.UI.createTableViewRow({ backgroundColor: share_background_color, }));
 	sectionShare.rows[0].add(Ti.UI.createLabel({ text: 'Share Treatment on Facebook', color: 'white', font: { fontWeight: 'bold', }, }));
@@ -368,6 +370,32 @@ var sectionShare = Ti.UI.createTableViewSection();
 		    }
 		});
 	});
+	
+var sectionMetaData = Ti.UI.createTableViewSection();
+	sectionMetaData.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', height: 100, hasChild: true }));
+	var individual_str = _individual?"Individual: "+_individual:'Click here to choose the individual this entry relates to. Select a name from the existing list '+
+																		'or enter a new name\n WARNING: This cannot be changed once the appointment has been created';
+	var individual = Ti.UI.createLabel({ left: 15, width: '90%', text: individual_str, font: { fontSize: 14, }, });
+	if(individual_str.charAt(0) != 'C') {
+		individual.font = { fontWeight: 'bold', fontSize: '20' };
+		sectionMetaData.rows[0].setBackgroundColor('#D4CFCF');
+	}
+	sectionMetaData.rows[0].add(individual);
+	var entry_dateTime_str = _entry.id?'On '+_entry.date+' at '+_entry.time:'';
+	var entry_dateTime = Ti.UI.createLabel({ left: 15, top: 5, width: '90%', text: entry_dateTime_str, font: { fontSize: 14, }, });
+	
+	var entry_str = _entry.main_entry?_entry.main_entry:"What event led to this appointment? You can choose from an existing entry or write a new entry.\n"+
+																"WARNING: You cannot change this once the appointment has been created";
+	var entry = Ti.UI.createLabel({ left: 15, width: '90%', text: entry_str, font: { fontSize: 14, }, });
+	
+	if(individual_str.charAt(0) != 'C') { 
+		sectionMetaData.add(Ti.UI.createTableViewRow({ selectedBackgroundColor: 'white', height: 100, hasChild: true }));
+		sectionMetaData.rows[1].add(entry_dateTime);
+		sectionMetaData.rows[1].add(entry);
+	}
+	if(_entry.main_entry) {
+		sectionMetaData.rows[1].setBackgroundColor('#D4CFCF');
+	}	
 
 //Rules for what to display as the status
 if(treatment.status === 'Completed' || treatment.status === 'Cancelled') {
@@ -380,10 +408,22 @@ if(treatment.id) {
 		sectionStatus.rows[0].backgroundColor = "red";
 		blurSection(sectionDetails);
 	}
-	table.data = [sectionStatus, sectionDetails];	
+	if(Titanium.App.Properties.getString('child')) {
+		table.data = [sectionStatus, sectionDetails];
+	}
+	else {
+		table.data = [sectionMetaData, sectionStatus, sectionDetails];
+	}
+		
 }
 else {
-	table.data = sectionDetails;
+	if(Titanium.App.Properties.getString('child')) {
+		table.data = [sectionDetails];
+	}
+	else {
+		table.data = [sectionMetaData, sectionDetails];
+	}
+	
 }
 window.add(table);
 
@@ -399,13 +439,62 @@ function beforeSaving()
 		return false;
 	}
 	
+	if(!treatment.id) {
+		treatment.start_date = start_date.text;
+		treatment.end_date = end_date.text;
+		treatment.medication = medication.value;
+		//treatment.prescribed_by = prescribed_by.value;
+		treatment.diagnosis = diagnosis.value;
+		treatment.type = type.text;
+		treatment.dosage = dosage.value;
+		treatment.frequency = frequency.text;
+		treatment.interval = interval.text;
+		treatment.status = status.text;
+	}
+	
 	if(treatment.entry_id == null) {
-		alert('logic for this not entered. must find an existing entry based on diagnosis, category, symptoms/goals');
-		return false;
+		if(Titanium.App.Properties.getString('child')) {
+			//This will never be the case
+		}
+		//Created from the home screen. No child pre-selected
+		else {
+			if(individual.text.charAt(0) != 'I') {
+				alert('You have not mentioned which individual this appointment is for');
+				table.scrollToIndex(0);
+				return;
+			}
+			if(!_entry.main_entry) {
+				alert('You have not mentioned an entry that this appointment is related to');
+				table.scrollToIndex(0);
+				return;
+			}
+			var indiv_name = individual.text.split(': ')[1];
+		    var indiv_first_name = indiv_name.split(' ')[0];
+		    var indiv_last_name = indiv_name.split(' ')[1];
+		    
+			var _child = getChildByNameLocal(indiv_first_name, indiv_last_name);
+			if(_child.length == 0) { //This individual doesnt exist, need to create new record book
+		     		var row_id = insertChildLocal(Titanium.App.Properties.getString('user'), indiv_first_name,indiv_last_name,null,null,null);
+					insertRelationshipLocal(row_id, Titanium.App.Properties.getString('user'), 'Relation Unknown: Tap to change');
+			}			
+			if(!treatment.entry_id) {
+				if(!_entry.id) {
+					if(_child.length > 0) var record_id = insertRecordLocal(_child[0].id);
+					else if(row_id) var record_id = insertRecordLocal(row_id);
+					treatment.entry_id = _entry.id = insertEntryLocal(record_id, _entry.main_entry, _entry.date, _entry.time);
+				}
+				else {
+					treatment.entry_id = _entry.id;
+				}
+			}	
+		}
 	}
 	
 	if(treatment.id == null) {
-		var appointment_id=null;
+		treatment.id = insertTreatmentLocal(treatment.entry_id,treatment.appointment_id,start_date.text,end_date.text,medication.value,
+											type.text, dosage.value,frequency.text, interval.text, alert_text.text);
+		createTreatmentACS(treatment, _entry);
+	/*	var appointment_id=null;
 		var appointment_cloud_id=null;
 		if(treatment.appointment_id != null) {
 				appointment_cloud_id = getAppointmentLocal(treatment.appointment_id)[0].cloud_id;
@@ -434,16 +523,15 @@ function beforeSaving()
 										status: status.text,
 										//facebook_id: treatment.facebook_id,
 									});
-									
-	}	
+									*/
+	}
+	updateRecordTimesForEntryLocal(treatment.entry_id,timeFormatted(new Date()).date,timeFormatted(new Date()).time);	
 	updateTreatmentLocal(treatment.id, 'updated_at', timeFormatted(new Date()).date+' '+timeFormatted(new Date()).time);
-	//updateRecordTimesForEntryLocal(treatment.entry_id,timeFormatted(new Date()).date,timeFormatted(new Date()).time);
 	
+	treatment.entry_id = _entry.id;
 	var get_record_id = getEntryLocal(treatment.entry_id)[0].record_id; 
-	updateRecordLocal(get_record_id, treatment.entry_id, 'entries', timeFormatted(new Date()).date, timeFormatted(new Date()).time);
 	
 	var cloud_version = getRecordMainDetailsLocal(get_record_id);
-	cloud_version[0].current = getEntryLocal(treatment.entry_id)[0].cloud_id;
 	
 		if(cloud_version[0].cloud_id && Titanium.Network.online) { 
 			Cloud.Objects.update({
@@ -562,18 +650,12 @@ function changeStatusAndUnblur()
 					confirm.show();
 }
 
-
+//row_index unused
 function saveStatus(row_index)
 {
 	updateTreatmentLocal(treatment.id, 'status', status.text);
 	treatment.status = status.text;
-	
-	if(row_index == undefined) row_index = sectionStatus.rowCount-1;
-	
-	if(sectionStatus.rows[row_index].backgroundColor == 'blue')	{
-		sectionStatus.rows[row_index].backgroundColor = '#CCC';
-		sectionStatus.rows[row_index].children[0].text = 'Changes Saved!';
-	}
+
 	return true;
 }
 
@@ -582,12 +664,6 @@ function saveAdditionalNotes(row_index)
 	updateTreatmentLocal(treatment.id, 'additional_notes', additional_notes.text);
 	treatment.additional_notes = additional_notes.text;
 	
-	if(row_index == undefined) row_index = sectionStatus.rowCount-1;
-	
-	if(sectionStatus.rows[row_index].backgroundColor == 'blue') {
-		sectionStatus.rows[row_index].backgroundColor = '#CCC';
-		sectionStatus.rows[row_index].children[0].text = 'Changes Saved';
-	}
 	return true;
 }
 
@@ -597,8 +673,9 @@ function saveStatusData(row_index)
 	saveStatus(row_index);
 	saveAdditionalNotes(row_index);
 	
-	if(sectionStatus.rows[row_index].backgroundColor == 'blue') {
-		sectionStatus.rows[row_index].backgroundColor = '#CCC';
+	if(sectionStatus.rows[sectionStatus.rowCount-1].backgroundColor == 'blue') {
+		sectionStatus.rows[sectionStatus.rowCount-1].backgroundColor = '#CCC';
+		sectionStatus.rows[sectionStatus.rowCount-1].children[0].text = 'Changes Saved!';
 	}
 }
 
@@ -624,21 +701,15 @@ sectionStatus.addEventListener('click', function(e) {
 	}
 });
 
-status.addEventListener('click', function() {	
+status.addEventListener('click', function(e) {	
 	var data = [];
 	data[0] = 'Scheduled';
 	data[1] = 'Completed';
 	data[2] = 'Cancelled';
 	
-	var modalPicker = require('ui/common/helpers/modalPicker');
+	modalPicker = require('ui/common/helpers/modalPicker');
 	modalPicker = new modalPicker(null,data,status.text); 
-	
-	if(window.leftNavButton != null) { 
-		window.leftNavButton.setTouchEnabled(false);
-	}
-	window.rightNavButton.setTouchEnabled(false); 
-	window.setTouchEnabled(false);
-	table.scrollable = false;
+
 	if(Titanium.Platform.osname == 'iphone') modalPicker.open();
 	if(Titanium.Platform.osname == 'ipad') modalPicker.show({ view: status, });
 	
@@ -647,7 +718,7 @@ status.addEventListener('click', function() {
 		if(modalPicker.result) {
 			//The diagnosis section must only show if the appointment has been completed
 			if(modalPicker.result == 'Completed' && status.text != 'Completed') {
-				table.insertRowAfter(0, rowAdditionalNotes);
+				table.insertRowAfter(e.index, rowAdditionalNotes);
 			}
 			if(modalPicker.result != 'Complete' && status.text == 'Completed') {
 				table.deleteRow(rowAdditionalNotes);
@@ -661,16 +732,11 @@ status.addEventListener('click', function() {
 			if(sectionStatus.rows[sectionStatus.rowCount-1].backgroundColor == '#CCC') {
 				sectionStatus.rows[sectionStatus.rowCount-1].backgroundColor = 'blue';
 				sectionStatus.rows[sectionStatus.rowCount-1].children[0].text = 'Save Changes';
-			} 
+			}
+			sectionStatus.rows[0].backgroundColor = 'white'; 
 			status.text = modalPicker.result;
 		}
-		window.setTouchEnabled(true);
-		if(window.leftNavButton != null) { 
-			window.leftNavButton.setTouchEnabled(true);
-		}
-		window.rightNavButton.setTouchEnabled(true); 
-		table.scrollable = true;
-		};
+	};
 		
 		if(Titanium.Platform.osname == 'iphone') modalPicker.addEventListener('close', picker_closed);
 		if(Titanium.Platform.osname == 'ipad') modalPicker.addEventListener('hide', picker_closed);
@@ -753,7 +819,7 @@ function validateSymptoms()
 	return true;
 }
 
-function saveTreatmentDetails()
+function saveDetails()
 {		
 	updateTreatmentLocal(treatment.id, 'medication', medication.value);
 	//updateTreatmentLocal(treatment.id, 'prescribed_by', prescribed_by.value);
@@ -782,6 +848,8 @@ function saveTreatmentDetails()
 	treatment.frequency = frequency.text;
 	treatment.interval = interval.text;
 	treatment.alert = alert_text.text;
+	
+	scheduleNotification('treatment', treatment);
 }
 
 function saveSymptoms() 
@@ -811,15 +879,9 @@ function saveSideEffects()
 //input: date: the object that we need to work with(label object)
 function changeDate(date)
 {
-var modalPicker = require('ui/common/helpers/modalPicker');
+modalPicker = require('ui/common/helpers/modalPicker');
 modalPicker = new modalPicker(Ti.UI.PICKER_TYPE_DATE,null,date.text); 
 
-if(window.leftNavButton != null) { 
-	window.leftNavButton.setTouchEnabled(false);
-}
-window.rightNavButton.setTouchEnabled(false); 
-window.setTouchEnabled(false);
-table.scrollable = false;
 if(Titanium.Platform.osname == 'iphone') modalPicker.open();
 if(Titanium.Platform.osname == 'ipad') modalPicker.show({ view: date, });
 
@@ -830,12 +892,6 @@ if(Titanium.Platform.osname == 'ipad') modalPicker.show({ view: date, });
 			date.text = newDate;
 			activateSaveButton();
 		}
-	window.setTouchEnabled(true);
-	if(window.leftNavButton != null) { 
-		window.leftNavButton.setTouchEnabled(true);
-	}
-	window.rightNavButton.setTouchEnabled(true); 
-	table.scrollable = true;
 	};
 	
 	if(Titanium.Platform.osname == 'iphone') modalPicker.addEventListener('close', picker_closed);
@@ -906,15 +962,9 @@ if(isBlurred(e)) {
 	data[0] = 'Solid';
 	data[1] = 'Liquid';
 	
-	var modalPicker = require('ui/common/helpers/modalPicker');
+	modalPicker = require('ui/common/helpers/modalPicker');
 	modalPicker = new modalPicker(null,data,type.text); 
-	
-	if(window.leftNavButton != null) { 
-		window.leftNavButton.setTouchEnabled(false);
-	}
-	window.rightNavButton.setTouchEnabled(false); 
-	window.setTouchEnabled(false);
-	table.scrollable = false;
+
 	if(Titanium.Platform.osname == 'iphone') modalPicker.open();
 	if(Titanium.Platform.osname == 'ipad') modalPicker.show({ view: type, });
 	
@@ -922,7 +972,7 @@ if(isBlurred(e)) {
 	var picker_closed = function() {
 		if(modalPicker.result) {
 			//The diagnosis section must only show if the appointment has been completed
-			if(modalPicker.result == 'Solid') {	
+			if(modalPicker.result == 'Solid') {
 				dosage_title.text = '*Number of pills';
 				dosage.hintText = '1.5';
 			}
@@ -943,13 +993,7 @@ if(isBlurred(e)) {
 			type.text = modalPicker.result;
 			activateSaveButton();
 		}
-		window.setTouchEnabled(true);
-		if(window.leftNavButton != null) { 
-			window.leftNavButton.setTouchEnabled(true);
-		}
-		window.rightNavButton.setTouchEnabled(true); 
-		table.scrollable = true;
-		};
+	};
 		
 		if(Titanium.Platform.osname == 'iphone') modalPicker.addEventListener('close', picker_closed);
 		if(Titanium.Platform.osname == 'ipad') modalPicker.addEventListener('hide', picker_closed);
@@ -972,14 +1016,8 @@ if(isBlurred(e)) {
 	var data = '123456789';
 	
 	modalPicker = require('ui/common/helpers/modalPicker');
-	var modalPicker = new modalPicker(null,data,frequency.text); 
+	modalPicker = new modalPicker(null,data,frequency.text); 
 
-	if(window.leftNavButton != null) { 
-		window.leftNavButton.setTouchEnabled(false);
-	}
-	window.rightNavButton.setTouchEnabled(false); 
-	window.setTouchEnabled(false);
-	table.scrollable = false;
 	if(Titanium.Platform.osname == 'iphone') modalPicker.open();
 	if(Titanium.Platform.osname == 'ipad') modalPicker.show({ view: frequency, });
 
@@ -999,39 +1037,27 @@ if(isBlurred(e)) {
 			}
 			frequency.text = modalPicker.result;
 		}
-		window.setTouchEnabled(true);
-		if(window.leftNavButton != null) { 
-			window.leftNavButton.setTouchEnabled(true);
-		}
-		window.rightNavButton.setTouchEnabled(true); 
-		table.scrollable = true;
-		};
+	};
 		
 	if(Titanium.Platform.osname == 'iphone') modalPicker.addEventListener('close', picker_closed);
 	if(Titanium.Platform.osname == 'ipad') modalPicker.addEventListener('hide', picker_closed);
 });	
 	
 interval.addEventListener('click', function(e) {
-	//no need to produce a picker here. Keep at every day for now 
-	return;
-	//no further action here 
 if(isBlurred(e)) {
 	if(!changeStatusAndUnblur()) return;
 }	
 	
 	var data = [];
-	data[0] = 'every day';
-	data[1] = 'every week';
+	data[0] = 'once only';
+	data[1] = 'every day';
+	data[2] = 'every week';
+	data[3] = 'every month';
+	data[4] = 'every year';
 	
 	modalPicker = require('ui/common/helpers/modalPicker');
-	var modalPicker = new modalPicker(null,data,interval.text); 
+	modalPicker = new modalPicker(null,data,interval.text); 
 
-	if(window.leftNavButton != null) { 
-		window.leftNavButton.setTouchEnabled(false);
-	}
-	window.rightNavButton.setTouchEnabled(false); 
-	window.setTouchEnabled(false);
-	table.scrollable = false;
 	if(Titanium.Platform.osname == 'iphone') modalPicker.open();
 	if(Titanium.Platform.osname == 'ipad') modalPicker.show({ view: interval, });
 
@@ -1043,13 +1069,7 @@ if(isBlurred(e)) {
 			} 
 			interval.text = modalPicker.result;
 		}
-		window.setTouchEnabled(true);
-		if(window.leftNavButton != null) { 
-			window.leftNavButton.setTouchEnabled(true);
-		}
-		window.rightNavButton.setTouchEnabled(true); 
-		table.scrollable = true;
-		};
+	};
 		
 	if(Titanium.Platform.osname == 'iphone') modalPicker.addEventListener('close', picker_closed);
 	if(Titanium.Platform.osname == 'ipad') modalPicker.addEventListener('hide', picker_closed);
@@ -1071,14 +1091,8 @@ if(isBlurred(e)) {
 	data[6] = 'Never';
 	
 	modalPicker = require('ui/common/helpers/modalPicker');
-	var modalPicker = new modalPicker(null,data,alert_text.text); 
+	modalPicker = new modalPicker(null,data,alert_text.text); 
 
-	if(window.leftNavButton != null) { 
-		window.leftNavButton.setTouchEnabled(false);
-	}
-	window.rightNavButton.setTouchEnabled(false); 
-	window.setTouchEnabled(false);
-	table.scrollable = false;
 	if(Titanium.Platform.osname == 'iphone') modalPicker.open();
 	if(Titanium.Platform.osname == 'ipad') modalPicker.show({ view: alert_text, });
 
@@ -1097,13 +1111,7 @@ if(isBlurred(e)) {
 			}
 			alert_text.text = modalPicker.result;
 		}
-		window.setTouchEnabled(true);
-		if(window.leftNavButton != null) { 
-			window.leftNavButton.setTouchEnabled(true);
-		}
-		window.rightNavButton.setTouchEnabled(true); 
-		table.scrollable = true;
-		};
+	};
 		
 	if(Titanium.Platform.osname == 'iphone') modalPicker.addEventListener('close', picker_closed);
 	if(Titanium.Platform.osname == 'ipad') modalPicker.addEventListener('hide', picker_closed);
@@ -1139,9 +1147,9 @@ sectionDetails.addEventListener('click', function(e) {
 	if(e.row.backgroundColor == 'blue') {
 		if(!validateTreatmentDetails() || !validateSymptoms()) return;
 		if(!beforeSaving()) return;
-		saveTreatmentDetails();
 		saveSymptoms();
 		saveSideEffects();
+		saveDetails();
 		
 		var cloud_version = getTreatmentMainDetailsLocal(treatment.id);
 			if(cloud_version[0].cloud_id && Titanium.Network.online) { 
@@ -1161,6 +1169,57 @@ sectionDetails.addEventListener('click', function(e) {
 		Ti.App.fireEvent('eventSaved');
 		deactivateSaveButton();
 	}
+});
+
+individual.addEventListener('click', function(e) {
+	if(e.row.backgroundColor == '#D4CFCF') {
+		alert('Sorry, this cannot be changed');
+		return;
+	}
+	var select_individual_page = require('ui/common/helpers/search_items');
+	var the_individuals = getChildByUserIdLocal(Titanium.App.Properties.getString('user'));
+	for(x in the_individuals) the_individuals[x] = the_individuals[x].first_name+' '+the_individuals[x].last_name;
+	select_individual_page = new select_individual_page(navGroup, the_individuals, 'Select Individual');
+	(getNavGroup()).open(select_individual_page);
+	
+	select_individual_page.addEventListener('close', function() { 
+		if(select_individual_page.result) {
+			individual.text = 'Individual: '+select_individual_page.result;
+			individual.font = { fontWeight: 'bold', fontSize: '20', };
+			
+			if(sectionMetaData.rowCount > 1) return;
+			var row = Ti.UI.createTableViewRow({ height: 100, hasChild: true });
+			row.add(entry_dateTime);
+			row.add(entry);
+			table.insertRowAfter(0, row, { animated: true });
+		}
+	});
+});
+
+entry.addEventListener('click', function(e) {
+	if(e.row.backgroundColor == '#D4CFCF') {
+		alert('Sorry, this cannot be changed');
+		return;
+	}
+	var select_entry_page = require('ui/common/helpers/search_entries');
+	var indiv_name = individual.text.split(': ')[1];
+	var indiv_first_name = indiv_name.split(' ')[0];
+	var indiv_last_name = indiv_name.split(' ')[1];
+	var new_individual = getChildByNameLocal(indiv_first_name, indiv_last_name)[0];
+	var the_records = [];
+	var the_entries = [];
+	if(new_individual) the_records = getRecordsForChildLocal(new_individual.id);
+	for(x in the_records) the_entries.push(getEntryBy('record_id', the_records[x].id)[0]);
+	select_entry_page = new select_entry_page(navGroup, the_entries, _entry, 'Select/Create Entry');
+	(getNavGroup()).open(select_entry_page);
+	
+	select_entry_page.addEventListener('close', function() { 
+		if(select_entry_page.result.main_entry) {
+			entry_dateTime.text = 'On '+select_entry_page.result.date+' at '+select_entry_page.result.time;
+			entry.text = select_entry_page.result.main_entry;
+			_entry = select_entry_page.result;
+		}
+	});
 });
 
 

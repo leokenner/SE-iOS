@@ -18,7 +18,7 @@ function getAppointmentsACS(query /*, entry_local_id */)
 				    	 continue; 
 				    } 
 				    var the_entry = getEntryByCloudIdLocal(appointment.entry_id);
-				    if(!the_entry) {
+				    if(the_entry.length == 0) {
 				    	deleteObjectACS('appointments', appointment.id);
 				    	continue;
 				    }
@@ -30,6 +30,7 @@ function getAppointmentsACS(query /*, entry_local_id */)
 					var appointment_local_id = insertAppointmentLocal(entry_local_id, appointment.date, appointment.time, appointment.created_at, appointment.updated_at);
 					updateAppointmentLocal(appointment_local_id, 'date', appointment.date);
 					updateAppointmentLocal(appointment_local_id, 'time', appointment.time);
+					if(appointment.calendar_event_id) updateAppointmentLocal(appointment_local_id, 'calendar_event_id', appointment.calendar_event_id);
 					//updateAppointmentLocal(appointment_local_id, 'diagnosis', appointment.diagnosis);
 					//updateAppointmentLocal(appointment_local_id, 'final_diagnosis', appointment.final_diagnosis);
 					if(appointment.duration == undefined) {
@@ -97,9 +98,11 @@ function updateAppointmentsACS()
 
 function createAppointmentACS(appointment, entry)
 {
+	
 	var entry_cloud_id = getEntryLocal(appointment.entry_id)[0].cloud_id;
 	if(entry_cloud_id) {
-		appointment.entry_id = entry_cloud_id; 
+		appointment.child_id = getChildLocal(getRecordLocal(getEntryLocal(appointment.entry_id)[0].record_id)[0].child_id)[0].cloud_id;
+		appointment.entry_id = entry_cloud_id;		 
 		
 		Cloud.Objects.create({
 		    		classname: 'appointments',
@@ -134,7 +137,7 @@ function createAppointmentACS(appointment, entry)
 					updateChildLocal(child.id, 'updated_at', e.children[0].updated_at);
 					
 					var record = {
-						//id : entry_record_id,
+						id : entry_record_id,
 						child_id : e.children[0].id,
 					}
 					
@@ -148,6 +151,7 @@ function createAppointmentACS(appointment, entry)
 				        		updateRecordLocal(record.id, 'created_at', e.records[0].created_at);
 				        		updateRecordLocal(record.id, 'updated_at', e.records[0].updated_at);
 				        		
+				        		entry.child_id = record.child_id;
 				        		entry.record_id = e.records[0].id;
 				        		
 				        		Cloud.Objects.create({
@@ -160,6 +164,7 @@ function createAppointmentACS(appointment, entry)
 							        		updateEntryLocal(entry.id, 'created_at', e.entries[0].created_at);
 							        		updateEntryLocal(entry.id, 'updated_at', e.entries[0].updated_at);
 							        		
+							        		appointment.child_id = record.child_id;
 							        		appointment.entry_id = e.entries[0].id;
 							        		
 							        		Cloud.Objects.create({
@@ -197,6 +202,7 @@ function createAppointmentACS(appointment, entry)
 		
 		else { 
 			var record = {
+				id: entry_record_id,
 				child_id : child.cloud_id,
 			}
 		 
@@ -210,6 +216,7 @@ function createAppointmentACS(appointment, entry)
 		        		updateRecordLocal(record.id, 'created_at', e.records[0].created_at);
 		        		updateRecordLocal(record.id, 'updated_at', e.records[0].updated_at);
 		        		
+		        		entry.child_id = record.child_id;
 		        		entry.record_id = e.records[0].id;
 		        		
 		        		Cloud.Objects.create({
@@ -222,6 +229,7 @@ function createAppointmentACS(appointment, entry)
 				        		updateEntryLocal(entry.id, 'created_at', e.entries[0].created_at);
 				        		updateEntryLocal(entry.id, 'updated_at', e.entries[0].updated_at);
 				        		
+				        		appointment.child_id = record.child_id;
 				        		appointment.entry_id = e.entries[0].id;
 				        		
 				        		Cloud.Objects.create({

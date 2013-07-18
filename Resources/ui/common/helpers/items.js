@@ -40,45 +40,24 @@ function items(input, title)
 		}
 	}
 	
+	function insertItem(item)
+	{
+		var row = Ti.UI.createTableViewRow({ backgroundColor: 'white', selectedBackgroundColor: 'white', });				
+		var time_row = Ti.UI.createLabel({ text: item, left: 15, font: { fontWeight: 'bold', fontSize: 18, }, width: '50%', });	
+		row.add(time_row);
+		var trash_btn = Titanium.UI.createView({ backgroundColor: 'red', right: 15, width: 100, height: 30, });
+		var trash_txt = Ti.UI.createLabel({ text: 'Remove', color: 'white', font: { fontWeight: 'bold', }, });
+		trash_btn.add(trash_txt);
+		row.add(trash_btn);
+		table.appendRow(row);
+	}
+	
 	
 	//input: the_time as a date object
-	function insertItems(the_item) 
+	function insertItems(items) 
 	{
-		//if the_time is null, it means we are inserting from the input array
-		if(the_item == undefined) {
-			for(var i=0; i < input.length; i++) {
-				var row = Ti.UI.createTableViewRow({ backgroundColor: 'white', selectedBackgroundColor: 'white', });
-				var time = Ti.UI.createLabel({ text: input[i], left: 15, font: { fontWeight: 'bold', fontSize: 18, }, width: '50%', });
-				row.add(time);
-				var trash_btn = Titanium.UI.createView({ backgroundColor: 'red', right: 15, width: 100, height: 30, });
-				var trash_txt = Ti.UI.createLabel({ text: 'Remove', color: 'white', font: { fontWeight: 'bold', }, });
-				trash_btn.add(trash_txt);
-				row.add(trash_btn);
-				table.appendRow(row);
-			}
-		}
-		else { 
-				var row = Ti.UI.createTableViewRow({ backgroundColor: 'white', selectedBackgroundColor: 'white', });				
-				var time_row = Ti.UI.createLabel({ text: the_item, left: 15, font: { fontWeight: 'bold', fontSize: 18, }, width: '50%', });	
-				row.add(time_row);
-				var trash_btn = Titanium.UI.createView({ backgroundColor: 'red', right: 15, width: 100, height: 30, });
-				var trash_txt = Ti.UI.createLabel({ text: 'Remove', color: 'white', font: { fontWeight: 'bold', }, });
-				trash_btn.add(trash_txt);
-				row.add(trash_btn);
-				table.appendRow(row);
-				
-			/*	var index = getIndex(the_item);
-				if(index == -2) return;
-				else if(index == -3) {
-					table.appendRow(row);
-				}
-				else if(index == -1) {
-					table.insertRowBefore(0, row, { animated: true, });		
-				}
-				else {
-					table.insertRowAfter(index, row, { animated: true, });		
-				}	*/
-		}
+		if(!items) items = input;
+		for(x in items) insertItem(items[x]);
 	}
 	
 	
@@ -92,8 +71,10 @@ function items(input, title)
 	
 	self.addEventListener('close', function() {  
 		var array = [];
-		for(var i=0; i < table.data[0].rowCount; i++) {
-			array[i] = table.data[0].rows[i].children[0].text;
+		if(table.data[0]) { 
+			for(var i=0; i < table.data[0].rowCount; i++) {
+				array[i] = table.data[0].rows[i].children[0].text;
+			}
 		}
 		self.result = array;
 	});
@@ -138,7 +119,7 @@ function items(input, title)
 	});
 	
 	var input_field = Ti.UI.createTextField({
-		hintText: 'Enter here....',
+		hintText: "Enter a single "+title.charAt(0).toLowerCase() + title.slice(1,title.length-1)+" here....",
 		width: '80%',
 		left: 15,
 		height: '100%',
@@ -184,7 +165,7 @@ function items(input, title)
 				alert('New item must only contain letters');
 				return;
 			}
-			insertItems(e.value.charAt(0).toUpperCase()+e.value.slice(1));
+			insertItem(e.value.charAt(0).toUpperCase()+e.value.slice(1));
 			this.value='';
 		}
 	});
@@ -195,7 +176,7 @@ function items(input, title)
 				alert('New item must only contain letters');
 				return;
 			}
-			insertItems(input_field.value.charAt(0).toUpperCase()+input_field.value.slice(1));
+			insertItem(input_field.value.charAt(0).toUpperCase()+input_field.value.slice(1));
 			input_field.value='';
 		}
 	});

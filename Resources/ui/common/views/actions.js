@@ -100,7 +100,7 @@ function loadActivity(activity)
 {
 	var type = Titanium.UI.createLabel({ text: "Type: Activity", left: 10, top: 5, });
 	var date = Titanium.UI.createLabel({ text: "Start date: "+activity.start_date, left: 10, top: 5, });
-	var main_activity = Titanium.UI.createLabel({ text: activity.main_activity, font: {fontWeight: 'bold', fontSize: 20 }, left: 10, top: 5, });
+	var main_activity = Titanium.UI.createLabel({ text: activity.main_activity, font: {fontWeight: 'bold', fontSize: 20 }, left: 10, top: 5, height: 50, });
 	var background_color = getBackgroundColor(activity);
 	var row = Ti.UI.createTableViewRow({ height: 120, layout: 'vertical', backgroundColor: background_color, selectedBackgroundColor: 'white', hasChild: true, object: activity });
 	row.add(type);
@@ -137,15 +137,16 @@ var self = Titanium.UI.createWindow({
 });
 self.result=null;
 
-if(navGroup == undefined) { 
+if(!navGroup) { 
 	var navGroupWindow = require('ui/handheld/ApplicationNavGroup');
 		navGroupWindow = new navGroupWindow(self);
+		navGroup = (navGroupWindow.getChildren())[0];
 		navGroupWindow.result = null;
 }
 
 function getNavGroup()
 {
-	if(navGroupWindow != undefined) return (navGroupWindow.getChildren())[0];
+	if(navGroupWindow) return (navGroupWindow.getChildren())[0];
 	else return navGroup; 
 }
 
@@ -157,7 +158,7 @@ close_btn.addEventListener('click', function() {
 	input.activities = activities;
 	input.treatments = treatments;
 	self.result = input;
-	if(navGroupWindow != undefined) navGroupWindow.close();
+	if(navGroupWindow) navGroupWindow.close();
 	else navGroup.close(self);
 });
 self.leftNavButton = close_btn;
@@ -179,12 +180,12 @@ actionDialog.addEventListener('click', function(e) {
 			entry_id: input.entry_id?input.entry_id:null, 
 			appointment_id: input.appointment_id?input.appointment_id:null, 
 			};
-		activity_form = new activity_form(activity);
+		activity_form = new activity_form(activity, navGroup);
 		(getNavGroup()).open(activity_form);
 			
 			activity_form.addEventListener('close', function() {
 				if(activity_form.result != null) {
-					loadActivity(getActivityLocal(activity_form.result.id));	
+					loadActivity(getActivityLocal(activity_form.result.id)[0]);	
 					//loadActivity(activity_form.result);
 					explanation_label.hide();
 				}
@@ -197,12 +198,12 @@ actionDialog.addEventListener('click', function(e) {
 			entry_id: input.entry_id?input.entry_id:null, 
 			appointment_id: input.appointment_id?input.appointment_id:null, 
 			};
-		treatment_form = new treatment_form(treatment); 
+		treatment_form = new treatment_form(treatment, navGroup); 
 		(getNavGroup()).open(treatment_form);
 			
 			treatment_form.addEventListener('close', function() {
 				if(treatment_form.result != null) {
-					loadTreatment(getTreatmentLocal(treatment_form.result.id));
+					loadTreatment(getTreatmentLocal(treatment_form.result.id)[0]);
 					//loadTreatment(treatment_form.result);
 					explanation_label.hide();
 				}
@@ -329,7 +330,7 @@ table.addEventListener('click', function(e) {
 	});
 });
 
-	if(navGroup == undefined) { navGroup = (navGroupWindow.getChildren())[0]; return navGroupWindow; }
+	if(navGroupWindow) return navGroupWindow; 
 	else return self;
 };
 

@@ -37,6 +37,11 @@ function entry_form(input, navGroup)
 		title: 'Entry',
 		backgroundColor: 'white'
 	});
+	var modalPicker=null;
+	window.addEventListener('blur', function() {
+		//If there is a modalPicker open, close it
+		if(modalPicker) modalPicker.close();
+	});
 	
 	if(!navGroup) { 
 		var navGroupWindow = require('ui/handheld/ApplicationNavGroup');
@@ -87,7 +92,7 @@ function entry_form(input, navGroup)
 					deleteObjectACS('entries', entry.cloud_id);
 					//Check if this is the last entry of the record. If so, the record must also be deleted
 					var record_cloud_id = getRecordLocal(entry.record_id)[0].cloud_id;
-					var entries = getEntryBy('record_id', entry.record_id);
+					var entries = getEntryBy('record_id', record_cloud_id);
 					if(entries.length == 0) {
 							deleteRecordLocal(entry.record_id);
 							deleteObjectACS('records', record_cloud_id);
@@ -351,14 +356,7 @@ function saveDetails()
 dateTime.addEventListener('click', function(e) {
 	
 	modalPicker = require('ui/common/helpers/modalPicker');
-	var modalPicker = new modalPicker(Ti.UI.PICKER_TYPE_DATE_AND_TIME,'entry',dateTime.text); 
-
-	if(window.leftNavButton != null) { 
-		window.leftNavButton.setTouchEnabled(false);
-	}
-	window.rightNavButton.setTouchEnabled(false); 
-	window.setTouchEnabled(false);
-	table.scrollable = false;
+	modalPicker = new modalPicker(Ti.UI.PICKER_TYPE_DATE_AND_TIME,'entry',dateTime.text); 
 
 	if(Titanium.Platform.osname == 'iphone') modalPicker.open();
 	if(Titanium.Platform.osname == 'ipad') modalPicker.show({ view: dateTime });
@@ -379,7 +377,7 @@ dateTime.addEventListener('click', function(e) {
 		window.rightNavButton.setTouchEnabled(true); 
 		table.scrollable = true;
 	};
-	
+
 	if(Titanium.Platform.osname == 'iphone') modalPicker.addEventListener('close', picker_closed);
 	if(Titanium.Platform.osname == 'ipad') modalPicker.addEventListener('hide', picker_closed);
 });
@@ -393,9 +391,10 @@ main_entry.addEventListener('click', function(e) {
 		var main_entry_text = main_entry.text;
 	}
 	entry_page = new entry_page('Main Entry', "Enter your entry here", main_entry_text);
-	(getNavGroup()).open(entry_page);
+	if(Titanium.Platform.osname == 'iphone') (getNavGroup()).open(entry_page);
+	if(Titanium.Platform.osname == 'ipad') entry_page.show({ view: main_entry });
 													
-	entry_page.addEventListener('close', function() {
+	var page_closed = function() {
 		if(entry_page.result === main_entry.text) return;
 		if(!entry_page.result) {
 			main_entry.text = "No entry entered";
@@ -404,7 +403,10 @@ main_entry.addEventListener('click', function(e) {
 			main_entry.text = entry_page.result;
 		}
 		activateSaveButton();
-	});
+	};
+	
+	if(Titanium.Platform.osname == 'iphone') entry_page.addEventListener('close', page_closed);
+	if(Titanium.Platform.osname == 'ipad') entry_page.addEventListener('hide', page_closed);
 });
 
 sectionDetails.addEventListener('click', function(e) {

@@ -13,9 +13,9 @@ function RecordsWindow() {
 	self.leftNavButton = leftNav_btn;
 	
 	var rightNav_btn = Ti.UI.createButton({
-		title: 'Help'
+		title: 'Ended'
 	});
-	//self.rightNavButton = rightNav_btn; 
+	self.rightNavButton = rightNav_btn; 
 	
 	leftNav_btn.addEventListener('click',function(e){
 		if(leftNav_btn.title == 'Menu'){
@@ -29,7 +29,6 @@ function RecordsWindow() {
 			}));
 		} else {
 			leftNav_btn.title= 'Menu';
-			//self.containingTabGroup.animate(Ti.UI.createAnimation({
 				navGroupWindow.animate(Ti.UI.createAnimation({
 					left: 0,
 					right: 0,
@@ -40,7 +39,6 @@ function RecordsWindow() {
 	
 	Ti.App.addEventListener('changeUser', function() {
 		leftNav_btn.title= 'Menu';
-			//self.containingTabGroup.animate(Ti.UI.createAnimation({
 				navGroupWindow.animate(Ti.UI.createAnimation({
 					left: 0,
 					right: 0,

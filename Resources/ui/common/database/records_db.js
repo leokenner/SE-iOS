@@ -140,6 +140,11 @@ function getRecordByCloudIdLocal(cloud_id)
 
 function deleteRecordLocal(id)
 {
+	var entries = getEntryBy('record_id', id);
+	for(x in entries) {
+		deleteEntryLocal(entries[x].id);
+	}
+	
 	var sql = "DELETE FROM records WHERE ID='"+id+ "'";
 	db.execute(sql);
 }

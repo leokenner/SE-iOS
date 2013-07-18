@@ -6,7 +6,7 @@ function initActivitiesDBLocal()
 	Ti.include('ui/common/database/database.js');
 	
 	db.execute('CREATE TABLE IF NOT EXISTS activities (ID INTEGER PRIMARY KEY AUTOINCREMENT, CLOUD_ID TEXT, ENTRY_ID INTEGER, APPOINTMENT_ID INTEGER, MAIN_ACTIVITY TEXT NOT NULL, RECOMMENDED_BY TEXT, DIAGNOSIS TEXT, START_DATE TEXT NOT NULL, END_DATE TEXT NOT NULL, FREQUENCY TEXT, INTERVAL TEXT, ALERT TEXT, STATUS TEXT, LOCATION TEXT, ADDITIONAL_NOTES TEXT, CREATED_AT TEXT, UPDATED_AT TEXT, FACEBOOK_ID TEXT, FOREIGN KEY(ENTRY_ID) REFERENCES entries (ID), FOREIGN KEY(APPOINTMENT_ID) REFERENCES appointments (ID))');
-	db.execute('CREATE TABLE IF NOT EXISTS activity_times (ACTIVITY_ID INTEGER NOT NULL, TIME TEXT NOT NULL, FOREIGN KEY(ACTIVITY_ID) REFERENCES activities (ID))');
+	db.execute('CREATE TABLE IF NOT EXISTS activity_times (ACTIVITY_ID INTEGER NOT NULL, TIME TEXT NOT NULL, CALENDAR_EVENT_ID TEXT, FOREIGN KEY(ACTIVITY_ID) REFERENCES activities (ID))');
 	db.execute('CREATE TABLE IF NOT EXISTS activity_goals (ACTIVITY_ID INTEGER NOT NULL, GOAL TEXT NOT NULL, FOREIGN KEY(ACTIVITY_ID) REFERENCES activities (ID))');
 }
 
@@ -93,6 +93,7 @@ function getActivityResultSet(resultSet, results)
     
     for(var i=0; i < results.length; i++) {
     	results[i].times = getTimesOfActivityLocal(results[i].id);
+    	results[i].calendar_event_ids = getEventIdsOfActivityLocal(results[i].id);
     	results[i].goals = getGoalsOfActivityLocal(results[i].id);
     }	
     
@@ -135,6 +136,7 @@ function getActivityMainResultSet(resultSet, results)
     
     for(var i=0; i < results.length; i++) {
     	results[i].times = getTimesOfActivityLocal(results[i].id);
+    	results[i].calendar_event_ids = getEventIdsOfActivityLocal(results[i].id);
     	results[i].goals = getGoalsOfActivityLocal(results[i].id);
     }	
     
@@ -164,7 +166,7 @@ function getActivitiesForEntryLocal(entry_id)
 
 function getOnlyActivitiesForEntryLocal(entry_id) 
 { 
-	var sql = "SELECT * FROM activities WHERE ENTRY_ID='"+entry_id+"' AND APPOINTMENT_ID=null"; 
+	var sql = "SELECT * FROM activities WHERE ENTRY_ID='"+entry_id+"' AND APPOINTMENT_ID IS NULL"; 
 	
 	var results = [];
 	var resultSet = db.execute(sql);	
@@ -262,6 +264,22 @@ function getTimesOfActivityLocal(activity_id)
 	return results;
 }
 
+function getEventIdsOfActivityLocal(activity_id, time)
+{
+	var sql = "SELECT * FROM activity_times WHERE ACTIVITY_ID='"+activity_id+"'";
+	if(time) sql += " AND TIME='"+time+"'";
+	
+	var results = [];
+	var resultSet = db.execute(sql);
+    while (resultSet.isValidRow()) { 
+    	results.push(resultSet.fieldByName('calendar_event_id'));
+		resultSet.next();
+    }
+    resultSet.close();		
+
+	return results;
+}
+
 function getGoalsOfActivityLocal(activity_id) 
 {
 	var sql = "SELECT * FROM activity_goals WHERE ACTIVITY_ID='"+activity_id+"'";
@@ -287,6 +305,19 @@ function updateActivityLocal(activity_id, column, data)
 	
 	var sql = "UPDATE activities SET "+column+"='"+data+"' ";
 	sql = sql + "WHERE ID='"+activity_id+"'"; 
+	
+	db.execute(sql);
+}
+
+function updateActivityTimesLocal(activity_id, time, column, data)
+{
+	var intRegex = /^\d+$/;
+	if(intRegex.test(data)) {}   //The replacing quotes function throws an error if you use it on an integer
+	else if(!data) { data=''; }
+	else { data = data.replace("'","''"); }
+	
+	var sql = "UPDATE activity_times SET "+column+"='"+data+"' ";
+	sql = sql + "WHERE ACTIVITY_ID='"+activity_id+"' AND TIME='"+time+"'"; 
 	
 	db.execute(sql);
 }

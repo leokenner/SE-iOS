@@ -89,14 +89,14 @@ function scheduleAppointmentLocalNotifications(appointment, child)
 									});
 									confirm.show();
 							}
-						}, d.getTime() - (new Date).getTime());
+						}, d.getTime() - (new Date).getTime()); 
 	
 		
 			Ti.App.iOS.scheduleLocalNotification({ 
 				alertBody: child.first_name+" has an appointment with Dr. "+appointment.doctor.name+" "+alertBody, 
 				alertAction: "view",
 				repeat: repeat,
-				sound: "ui/common/localnotifications/pop.caf", 
+				//sound: "ui/common/localnotifications/pop.caf", 
 				userInfo: {"child": child, "type": "appointment", "appointment": JSON.stringify(appointment) }, 
 				date: new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null),  
 			});
@@ -106,7 +106,7 @@ function scheduleAppointmentLocalNotifications(appointment, child)
 	
 }
 
-function scheduleActivityLocalNotifications(activity, child)
+function scheduleActivityLocalNotificationsH(activity, child)
 {
 	var days = Math.floor(( Date.parse(activity.end_date) - Date.parse(activity.start_date) ) / 86400000); //1000*60*60*24
 	if(activity.alert === 'Time of event') var advance = 0;
@@ -185,14 +185,15 @@ function scheduleActivityLocalNotifications(activity, child)
 									});
 									confirm.show();
 							}
-						}, d.getTime() - (new Date).getTime());
-						 	 
+						}, d.getTime() - (new Date).getTime()); 
+						var funny = new Date();
+						funny.setMinutes(funny.getMinutes()+1); 	 
 						Ti.App.iOS.scheduleLocalNotification({ 
 							alertBody: child.first_name+" needs to complete an activity", 
 							alertAction: "view", 
-							sound: "ui/common/localnotifications/pop.caf", 
+							//sound: "ui/common/localnotifications/pop.caf", 
 							userInfo: {"id": local_notification_id, "child": child, "type": "activity", "activity": JSON.stringify(activity) }, 
-							date: new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null),  
+							date: funny//new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null),  
 						});		
 					}
 				}
@@ -295,12 +296,12 @@ function scheduleTreatmentLocalNotifications(treatment, child)
 									});
 									confirm.show();
 							}
-						}, d.getTime() - (new Date).getTime());
+						}, d.getTime() - (new Date).getTime()); 
 						 	 
 						Ti.App.iOS.scheduleLocalNotification({ 
 							alertBody: child.first_name+" needs to take medication", 
 							alertAction: "view",
-							sound: "ui/common/localnotifications/pop.caf",  
+							//sound: "ui/common/localnotifications/pop.caf",  
 							userInfo: {"id": local_notification_id, "child": child, "type": "treatment", "treatment": JSON.stringify(treatment) }, 
 							date: new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null),  
 						});	
@@ -319,7 +320,7 @@ var scheduleAllLocalNotifications = function()
 		clearInterval(timeIntervalIds[i]);
 		timeIntervalIds.pop();
 	}
-	
+
 	var children = getAllChildrenLocal();
 	
 	for(var i=0; i < children.length; i++) {
@@ -357,7 +358,7 @@ var scheduleAllLocalNotifications = function()
 	
 }
 
-Ti.App.iOS.addEventListener('notification', function(e) { 
+Ti.App.iOS.addEventListener('notification', function(e) {
 	var window = Ti.UI.createWindow({ title: "Reminder", backgroundColor: 'white', });
 	var done_btn = Ti.UI.createButton({ systemButton: Ti.UI.iPhone.SystemButton.DONE, });
 	
@@ -464,7 +465,7 @@ function deleteAllLocalNotifications()
 
 Ti.App.addEventListener('resumed', function() { isAppActive=true; });
 Ti.App.addEventListener('paused', function() { isAppActive=false; });
-Ti.App.addEventListener('eventSaved', scheduleAllLocalNotifications);
+//Ti.App.addEventListener('eventSaved', scheduleAllLocalNotifications);
 
 
 

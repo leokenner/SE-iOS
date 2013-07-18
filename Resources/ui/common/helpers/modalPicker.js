@@ -1,5 +1,86 @@
 
 
+function getPicker(type, data, selected)
+{
+	if(type == null) 
+	{ 
+		var picker = Ti.UI.createPicker();
+		for(var i=0;i<data.length;i++) {
+		picker.add(Ti.UI.createPickerRow({ title: data[i] }));
+		  if(data[i] == selected) {
+		  	picker.setSelectedRow(0,i,false);
+		  }
+		}
+	}
+	else if(type == 'picker_columns')
+	{
+		var picker_columns = [];
+		
+		for(var i=0;i<data.length;i++)
+		{
+			picker_columns[i] = Ti.UI.createPickerColumn();
+			
+			for(var j=0;j<data[i].length;j++)  //location 0 is the column title
+			{
+				if(typeof(data[i][j]) == 'number') { data[i][j] = data[i][j].toString(); }
+				picker_columns[i].addRow(Ti.UI.createPickerRow({ title: data[i][j] }));
+			}
+		} 
+		
+		var picker = Ti.UI.createPicker({
+	     columns: picker_columns,
+	     selectionIndicator: true,
+	     useSpinner: true, // required in order to use multi-column pickers with Android
+	     top:50
+		});
+		for(var i=0;i < data.length;i++) { picker.setSelectedRow(i, 0, false); }
+	}
+	else 
+	{
+		var d = roundMinutes(new Date());
+			
+			//Its a DOB picker or entry date picker......has to be in the present/past
+			if(data == 'DOB') {
+				var min_date = new Date(d.getFullYear()-99,00,01);
+				var max_date = new Date(d.getFullYear(),d.getMonth(),d.getDate());
+				var value = new Date(selected); 
+			}
+			else if(data == 'entry') {
+				var min_date = new Date(d.getFullYear()-18,00,01,d.getHours(),d.getMinutes(),null,null);
+				var max_date = new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null);
+				var value = new Date(selected);
+			}
+			else if(type == Ti.UI.PICKER_TYPE_TIME && data != 'DOB' && data != 'incident') {
+				var min_date = new Date(d.getFullYear(),d.getMonth(),d.getDate()-1,d.getHours(),d.getMinutes(),null,null);;
+				var max_date = new Date(d.getFullYear()+2,12,31,d.getHours(),d.getMinutes(),null,null);
+				var this_date = timeFormatted(new Date()).date;
+				var value = roundMinutes(new Date(this_date+' '+selected));
+			} 
+			//Its a regular date/time picker
+			else {
+				var min_date = new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null);;
+				var max_date = new Date(d.getFullYear()+2,12,31,d.getHours(),d.getMinutes(),null,null);
+	  			var value = roundMinutes(new Date(selected));										
+			}
+	  		
+	  		var picker = Titanium.UI.createPicker({ type: type, 
+	  													  minDate: min_date,
+	  													  maxDate: max_date, 
+	  													  value: value,
+	  													  minuteInterval: 5, });	
+	  													  
+	  		if(type == Ti.UI.PICKER_TYPE_COUNT_DOWN_TIMER) picker.setCountDownDuration(selected);											  										 
+	  													  
+	  		picker.addEventListener('change',function(e) {
+	    		picker.setValue(e.value);
+			});
+	
+	}
+	picker.selectionIndicator = true;
+	
+	return picker;
+}
+
 function iphoneModalPicker(type,data,selected) 
 { 
 	Ti.include('ui/common/helpers/dateTime.js');
@@ -20,6 +101,8 @@ self.result = null;
 var win = Titanium.UI.createWindow({
   	backgroundColor: 'black',
   });    
+win.hideTabBar();
+win.addEventListener('blur', function() { self.close(); });
   
 var tab1 = Titanium.UI.createTab({
 	window: win
@@ -52,85 +135,8 @@ done_btn.addEventListener('click', function() {
 	self.close();
 });
 win.rightNavButton = done_btn;
-win.hideTabBar();
 
-
-if(type == null) 
-{ 
-	var picker = Ti.UI.createPicker();
-	for(var i=0;i<data.length;i++) {
-	picker.add(Ti.UI.createPickerRow({ title: data[i] }));
-	  if(data[i] == selected) {
-	  	picker.setSelectedRow(0,i,false);
-	  }
-	}
-}
-else if(type == 'picker_columns')
-{
-	var picker_columns = [];
-	
-	for(var i=0;i<data.length;i++)
-	{
-		picker_columns[i] = Ti.UI.createPickerColumn();
-		
-		for(var j=0;j<data[i].length;j++)  //location 0 is the column title
-		{
-			if(typeof(data[i][j]) == 'number') { data[i][j] = data[i][j].toString(); }
-			picker_columns[i].addRow(Ti.UI.createPickerRow({ title: data[i][j] }));
-		}
-	} 
-	
-	var picker = Ti.UI.createPicker({
-     columns: picker_columns,
-     selectionIndicator: true,
-     useSpinner: true, // required in order to use multi-column pickers with Android
-     top:50
-	});
-	for(var i=0;i < data.length;i++) { picker.setSelectedRow(i, 0, false); }
-}
-else 
-{
-	var d = roundMinutes(new Date());
-		
-		//Its a DOB picker or entry date picker......has to be in the present/past
-		if(data == 'DOB') {
-			var min_date = new Date(d.getFullYear()-99,00,01);
-			var max_date = new Date(d.getFullYear(),d.getMonth(),d.getDate());
-			var value = new Date(selected); 
-		}
-		else if(data == 'entry') {
-			var min_date = new Date(d.getFullYear()-18,00,01,d.getHours(),d.getMinutes(),null,null);
-			var max_date = new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null);
-			var value = new Date(selected);
-		}
-		else if(type == Ti.UI.PICKER_TYPE_TIME && data != 'DOB' && data != 'incident') {
-			var min_date = new Date(d.getFullYear(),d.getMonth(),d.getDate()-1,d.getHours(),d.getMinutes(),null,null);;
-			var max_date = new Date(d.getFullYear()+2,12,31,d.getHours(),d.getMinutes(),null,null);
-			var this_date = timeFormatted(new Date()).date;
-			var value = roundMinutes(new Date(this_date+' '+selected));
-		} 
-		//Its a regular date/time picker
-		else {
-			var min_date = new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null);;
-			var max_date = new Date(d.getFullYear()+2,12,31,d.getHours(),d.getMinutes(),null,null);
-  			var value = roundMinutes(new Date(selected));										
-		}
-  		
-  		var picker = Titanium.UI.createPicker({ type: type, 
-  													  minDate: min_date,
-  													  maxDate: max_date, 
-  													  value: value,
-  													  minuteInterval: 5, });	
-  													  
-  		if(type == Ti.UI.PICKER_TYPE_COUNT_DOWN_TIMER) picker.setCountDownDuration(selected);											  										 
-  													  
-  		picker.addEventListener('change',function(e) {
-    		picker.setValue(e.value);
-		});
-
-}
-
-picker.selectionIndicator = true;
+var picker = getPicker(type, data, selected);
 win.add(picker);
 
 self.animate(Ti.UI.createAnimation({
@@ -169,84 +175,12 @@ function ipadModalPicker(type, data, selected)
 		else if(type == Ti.UI.PICKER_TYPE_DATE_AND_TIME) { popover.result = picker.getValue(); }
 		else if(type == Ti.UI.PICKER_TYPE_COUNT_DOWN_TIMER) { popover.result = picker.getCountDownDuration(); }
 		else if(type == Ti.UI.PICKER_TYPE_DATE) { popover.result = picker.getValue(); }
+		else if(type == Ti.UI.PICKER_TYPE_TIME) { popover.result = picker.getValue(); }
 		else { popover.result = picker.getSelectedRow(0).title; }
 	    popover.hide();
 	});
 	
-	if(type == null) 
-	{ 
-		var picker = Ti.UI.createPicker();
-		for(var i=0;i<data.length;i++) {
-		picker.add(Ti.UI.createPickerRow({ title: data[i] }));
-		  if(data[i] == selected) {
-		  	picker.setSelectedRow(0,i,false);
-		  }
-		}
-	}
-	else if(type == 'picker_columns')
-	{
-		var picker_columns = [];
-		
-		for(var i=0;i<data.length;i++)
-		{
-			picker_columns[i] = Ti.UI.createPickerColumn();
-			
-			for(var j=0;j<data[i].length;j++)  //location 0 is the column title
-			{
-				if(typeof(data[i][j]) == 'number') { data[i][j] = data[i][j].toString(); }
-				picker_columns[i].addRow(Ti.UI.createPickerRow({ title: data[i][j] }));
-			}
-		} 
-		
-		var picker = Ti.UI.createPicker({
-	     columns: picker_columns,
-	     selectionIndicator: true,
-	     useSpinner: true, // required in order to use multi-column pickers with Android
-	     top:50
-		});
-		for(var i=0;i < data.length;i++) { picker.setSelectedRow(i, 0, false); }
-	}
-	else 
-	{
-		var d = roundMinutes(new Date());
-			
-			//Its a DOB picker or incident date picker......has to be in the present/past
-			if(data == 'DOB') {
-				var min_date = new Date(d.getFullYear()-99,00,01);
-				var max_date = new Date(d.getFullYear(),d.getMonth(),d.getDate());
-				var value = new Date(selected); 
-			}
-			else if(data == 'incident') {
-				var min_date = new Date(d.getFullYear()-18,00,01,d.getHours(),d.getMinutes(),null,null);
-				var max_date = new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null);
-				var value = new Date(selected);
-			}
-			else if(type == Ti.UI.PICKER_TYPE_TIME && data != 'DOB' && data != 'incident') {
-				var min_date = new Date(d.getFullYear(),d.getMonth(),d.getDate()-1,d.getHours(),d.getMinutes(),null,null);;
-				var max_date = new Date(d.getFullYear()+2,12,31,d.getHours(),d.getMinutes(),null,null);
-				var this_date = timeFormatted(new Date()).date;
-				var value = roundMinutes(new Date(this_date+' '+selected));
-			}
-			//Its a regular date/time picker
-			else {
-				var min_date = new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),d.getMinutes(),null,null);;
-				var max_date = new Date(d.getFullYear()+2,12,31,d.getHours(),d.getMinutes(),null,null);
-	  			var value = roundMinutes(new Date(selected));										
-			}
-	  		
-	  		var picker = Titanium.UI.createPicker({ type: type, 
-	  													  minDate: min_date,
-	  													  maxDate: max_date, 
-	  													  value: value,
-	  													  minuteInterval: 5 });
-	  													  
-	  		if(type == Ti.UI.PICKER_TYPE_COUNT_DOWN_TIMER) picker.setCountDownDuration(selected);											  											 
-	  													  
-	  		picker.addEventListener('change',function(e) {
-	    		picker.setValue(e.value);
-			});
-	}
-	picker.selectionIndicator = true;
+	var picker = getPicker(type, data, selected);
 	
 	var popover = Ti.UI.iPad.createPopover({
 	    width: 320,

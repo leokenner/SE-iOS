@@ -3,24 +3,11 @@
 function mainCover() {
 var Cloud = require('ti.cloud');
 
-/*
-Ti.include('ui/common/database/database.js');
-Ti.include('ui/common/cloud/appcelerator/users_acs.js');
-Ti.include('ui/common/cloud/appcelerator/social/facebook.js');
-Ti.include('ui/common/cloud/appcelerator/socialIntegrations.js');
-Ti.include('ui/common/cloud/appcelerator/objects.js');
-Ti.include('ui/common/cloud/appcelerator/children_acs.js');
-Ti.include('ui/common/cloud/appcelerator/records_acs.js');
-Ti.include('ui/common/cloud/appcelerator/entries_acs.js');
-Ti.include('ui/common/cloud/appcelerator/appointments_acs.js');
-Ti.include('ui/common/cloud/appcelerator/activities_acs.js');
-Ti.include('ui/common/cloud/appcelerator/treatments_acs.js');	
-*/
 	//create module instance
 	var self = Ti.UI.createWindow({
 		backgroundColor: 'white',
 		navBarHidden: true,
-		orientationModes: [Ti.UI.PORTRAIT],
+		//orientationModes: [Ti.UI.PORTRAIT],
 	});
 	
 	var style;
@@ -50,21 +37,10 @@ Ti.include('ui/common/cloud/appcelerator/treatments_acs.js');
 	});
 	
 	var fb_login_buttons = function() {
-		if(Titanium.App.Properties.getObject('loggedInUser')) {
-			var user = Titanium.App.Properties.getObject('loggedInUser');
-			fblogin_existing_label.text = 'Login as '+user.first_name+' '+user.last_name;
-			existinguser_lbl.text = 'Not '+user.first_name+'?';
-			fblogin_existing.show();
-			existinguser_lbl.show();
-		}
-		else {   
-			fblogin_existing.hide();
-			existinguser_lbl.hide();
-		}   
+		
 	}
 	
 	Ti.App.addEventListener('FBloginClosed', fb_login_buttons);
-	
 	self.addEventListener('focus', fb_login_buttons);
 	
 	var name = Ti.UI.createLabel({
@@ -102,11 +78,11 @@ Ti.include('ui/common/cloud/appcelerator/treatments_acs.js');
 		});
 		
 		var main_txt = Ti.UI.createLabel({
-			top: '10 dp',
+			top: 10,
 			color: 'black',
 			textAlign: 1,
 			width: '95%',
-			font: { fontSize: '15 dp', },
+			font: { fontSize: 15, },
 			text: "StarsEarth is a mobile journal that allows you to track your child's development. "+
 					"You can use StarsEarth to record issues that you see in your child's daily life, "+
 					"from medical to social to academic. StarsEarth allows you to record any story, as "+
@@ -124,61 +100,16 @@ Ti.include('ui/common/cloud/appcelerator/treatments_acs.js');
 	about.addEventListener('click', starsearth_description);
 	
 	var background_img = Ti.UI.createImageView({
-		image: '/familia.png',
+		image: 'family.png',
 		zIndex: 1,
 		bottom: 0,
 		left: 0,
 		width: '100%',
 	});
-	self.add(background_img);  
-	
-	var fblogin_existing = Titanium.UI.createView({
-	height: '40 dp',
-	width: '70%',
-	top: '30%',
-	backgroundColor: 'blue',
-	borderColor: 'black',
-	borderRadius: 5,
-	zIndex: 2,
-	});	
-	var fblogin_existing_label = Ti.UI.createLabel({
-		font: { fontSize: '15 dp', },
-		color: 'white',
-	});
-	fblogin_existing.add(fblogin_existing_label);
-	fblogin_existing.hide();
-	
-	fblogin_existing.addEventListener('touchstart', function() {
-		if(!Titanium.Network.online) {
-			alert('You are not connected to the internet');
-			return;
-		}
-		fblogin_existing.backgroundColor = 'black';
-		if(Titanium.Facebook.loggedIn) { Ti.Facebook.logout(); }
-		activityIndicator.show();
-		Ti.Facebook.authorize();
-	});	
-	fblogin_existing.addEventListener('touchend', function() {
-		fblogin_existing.backgroundColor = 'blue';
-	});
-	self.add(fblogin_existing);
-	
-	var existinguser_lbl = Titanium.UI.createLabel({
-	height: '30 dp',
-	//width: '70%',
-	top: '45%',
-	backgroundColor: 'transparent',
-	text: 'Not Katherinekgjkgjgkjghgfjhf?',
-	font: { fontSize: '15 dp', fontWeight: 'bold', },
-	color: 'blue',
-	textAlign: 1,
-	zIndex: 2,
-	});
-	self.add(existinguser_lbl);
-	existinguser_lbl.hide();  
+	self.add(background_img);    
 	
 	var fblogin_new = Titanium.UI.createView({
-	height: '40 dp',
+	height: 40,
 	width: '70%',
 	top: '55%',
 	backgroundColor: 'blue',
@@ -189,7 +120,7 @@ Ti.include('ui/common/cloud/appcelerator/treatments_acs.js');
 	
 	var fblogin_new_label = Titanium.UI.createLabel({
 		text: 'Login with Facebook',
-		font: { fontSize: '15 dp', },
+		font: { fontSize: 15, },
 		color: 'white',
 	});
 	
@@ -200,37 +131,14 @@ Ti.include('ui/common/cloud/appcelerator/treatments_acs.js');
 			alert('You are not connected to the internet');
 			return;
 		}
-		var fb = require('facebook');
-	fb.reauthorize(['publish_actions'], 'me', function(e){
-        if (e.success) {
-            // If successful, proceed with a publish call
-            fb.dialog("feed", {}, function(e) {
-                if(e.success && e.result) {
-                    alert("Success! New Post ID: " + e.result);
-                } else {
-                    if(e.error) {
-                        alert(e.error);
-                    } else {
-                        alert("User canceled dialog.");
-                    }
-                }
-            });
-        } else {
-            if (e.error) {
-                alert(e.error);
-            } else {
-                alert("Unknown result");
-            }
-        }
-    });
-	/*	fblogin_new.backgroundColor = 'black';
-		if(Titanium.Facebook.loggedIn) { Ti.Facebook.logout(); }
-		Titanium.App.Properties.setObject('loggedInUser', null);
 		var url = 'https://login.facebook.com';
 		var client = Titanium.Network.createHTTPClient();
 		client.clearCookies(url);
-		Ti.Facebook.authorize(); */
+		var fb = require('facebook');
+		fb.authorize();
+		fblogin_new.backgroundColor = 'black';
 	});
+	
 	fblogin_new.addEventListener('touchend', function() {
 		fblogin_new.backgroundColor = 'blue';
 	});
