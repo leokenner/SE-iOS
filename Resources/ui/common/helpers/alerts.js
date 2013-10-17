@@ -98,6 +98,13 @@ function alerts(input, time_before_alerts)
 	  height: 'auto'
 	});
 	self.result=null;
+	var modalPicker=null;
+	self.addEventListener('blur', function() {
+		//If there is a modalPicker open, close it
+		if(modalPicker) {
+			if(Titanium.Platform.osname == 'iphone') modalPicker.close();
+		}
+	});
 	
 	self.addEventListener('close', function() {  
 		var array = [];
@@ -200,14 +207,8 @@ function alerts(input, time_before_alerts)
 			return;
 		}
 		modalPicker = require('ui/common/helpers/modalPicker');
-		var modalPicker = new modalPicker(Ti.UI.PICKER_TYPE_TIME,null,timeFormatted(new Date()).time); 
+		modalPicker = new modalPicker(Ti.UI.PICKER_TYPE_TIME,null,timeFormatted(new Date()).time); 
 	
-		if(self.leftNavButton != null) { 
-			self.leftNavButton.setTouchEnabled(false);
-		}
-		self.rightNavButton.setTouchEnabled(false); 
-		self.setTouchEnabled(false);
-		table.scrollable = false;
 		if(Titanium.Platform.osname == 'iphone') modalPicker.open();
 		if(Titanium.Platform.osname == 'ipad') modalPicker.show({ view: add_btn, });
 	
@@ -216,13 +217,7 @@ function alerts(input, time_before_alerts)
 			if(modalPicker.result) {
 				insertTimes(modalPicker.result);
 			}
-			self.setTouchEnabled(true);
-			if(self.leftNavButton != null) { 
-				self.leftNavButton.setTouchEnabled(true);
-			}
-			self.rightNavButton.setTouchEnabled(true); 
-			table.scrollable = true;
-			};
+		};
 			
 		if(Titanium.Platform.osname == 'iphone') modalPicker.addEventListener('close', picker_closed);
 		if(Titanium.Platform.osname == 'ipad') modalPicker.addEventListener('hide', picker_closed);

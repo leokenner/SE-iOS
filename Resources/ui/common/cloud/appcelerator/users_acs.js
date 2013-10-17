@@ -51,6 +51,8 @@ function loginUserACS(email, password)
         	//need to run an update to insert the email
         	updateUserLocal(user_local_id,user.first_name,user.last_name,user.email);
         	
+        	//if(!user.tutorial_completed) Ti.App.fireEvent('startTutorial');
+        	//else 
         	Ti.App.fireEvent('userLoggedIn');
         	
         	
@@ -79,6 +81,7 @@ function updateUserACS(data)
 	Cloud.Users.update({
 		  	email: data.email,
 		  	username: data.username,
+		  	tutorial_complete: data.tutorial_complete,
 		}, function (e) {
 		    if (e.success) {
 		     	Ti.API.info('user successfully updated: /ui/common/cloud/appecelrator/users.js');

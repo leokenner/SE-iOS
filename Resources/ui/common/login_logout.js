@@ -12,18 +12,6 @@ function loadDatabase()
 	getChildrenACS({ user_id: user.cloud_id });
 	
 	var loadFromCloud = function() {
-	/*	var children = getAllChildrenLocal();
-		if(children.length == 0) {
-			var row_id = insertChildLocal(user.id, 'New', 'Patient',null,null,null);
-			insertRelationshipLocal(row_id, user.id, 'Relation Unknown: Tap to change');
-			Titanium.App.Properties.setString('child', row_id);
-			var child = getChildLocal(row_id);
-			child[0].user_id = getUserLocal(user.id)[0].cloud_id;
-			createObjectACS('children', child[0]);
-		}
-		else {
-			Titanium.App.Properties.setString('child', children[0].id);
-		} */
 		Titanium.App.Properties.setString('child', null);
 		Ti.App.fireEvent('databaseLoaded');  
 	}
@@ -33,20 +21,11 @@ function loadDatabase()
 
 
 function logout()
-{		
-/*	updateChildrenACS();
-	updateRecordsACS();
-	updateEntriesACS();
-	updateAppointmentsACS();
-	updateActivitiesACS();
-	updateTreatmentsACS(); */  
-
-	//Ti.App.addEventListener('cloudUpdateComplete', function(){ 
-		if(fb.loggedIn) {
-			fb.logout();
-		}
-		logoutUserACS();
-		Ti.App.fireEvent('logoutClicked');
-	//});
+{		 
+	if(fb.loggedIn) {
+		fb.logout();
+	}
+	logoutUserACS();
+	Ti.App.fireEvent('logoutClicked');
 	
 }

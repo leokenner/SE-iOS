@@ -34,7 +34,6 @@ function entry_form(input, navGroup)
 	
 		
 	var window = Ti.UI.createWindow({
-		title: 'Entry',
 		backgroundColor: 'white'
 	});
 	var modalPicker=null;
@@ -42,6 +41,28 @@ function entry_form(input, navGroup)
 		//If there is a modalPicker open, close it
 		if(modalPicker) modalPicker.close();
 	});
+	
+	var the_view = Ti.UI.createView({ width: '60%', });
+	var the_name = Ti.UI.createLabel({ text: 'Entry', font: { fontWeight: 'bold', fontSize: '22', }, color: 'white', });
+	var the_instruction = Ti.UI.createLabel({ text: 'Tap to view help', font: { fontSize: 10}, bottom: 0, });
+	the_view.add(the_name);
+	the_view.add(the_instruction);
+	the_view.addEventListener('click', function() {
+		var helpSection = require('ui/common/help_section/aboutEntries/indexEntries');
+			helpSection = new helpSection();
+			if(Titanium.Platform.osname == 'ipad') helpSection.show({ view: the_view });
+			else { 
+				helpSection.setTop(Titanium.Platform.displayCaps.platformHeight*0.9);
+				helpSection.animate(Ti.UI.createAnimation({
+					top: 0,
+					curve: Ti.UI.ANIMATION_CURVE_EASE_IN,
+					duration: 500
+				}));  
+				helpSection.open();
+			}	
+				
+	});
+	window.setTitleControl(the_view);
 	
 	if(!navGroup) { 
 		var navGroupWindow = require('ui/handheld/ApplicationNavGroup');
@@ -279,6 +300,7 @@ function beforeSaving()
 		     		var row_id = insertChildLocal(Titanium.App.Properties.getString('user'), indiv_first_name,indiv_last_name,null,null,null);
 					insertRelationshipLocal(row_id, Titanium.App.Properties.getString('user'), 'Relation Unknown: Tap to change');
 					alert(indiv_name+" did not have a record book with StarsEarth. One has been created from them. You can find it in the main menu");
+					Ti.App.fireEvent('individualEdited'); //update the main menu
 			}
 			if(_child.length > 0) entry.record_id = insertRecordLocal(_child[0].id);
 			else if(row_id) entry.record_id = insertRecordLocal(row_id);
@@ -370,12 +392,6 @@ dateTime.addEventListener('click', function(e) {
 			dateTime.text = newDate.date+' '+newDate.time;
 			activateSaveButton();
 		}
-		window.setTouchEnabled(true);
-		if(window.leftNavButton != null) { 
-			window.leftNavButton.setTouchEnabled(true);
-		}
-		window.rightNavButton.setTouchEnabled(true); 
-		table.scrollable = true;
 	};
 
 	if(Titanium.Platform.osname == 'iphone') modalPicker.addEventListener('close', picker_closed);

@@ -74,11 +74,13 @@ function leftMenu()
 	sectionNewRecordBook.add(Ti.UI.createTableViewRow({ backgroundColor: 'green', }));
 	sectionNewRecordBook.rows[sectionNewRecordBook.rowCount-1].add(create_txt);
 	var sectionOther = Ti.UI.createTableViewSection({ headerTitle: ' ' });
+	var help_row = Ti.UI.createTableViewRow({ title: 'Help Questions', color: 'white', bubbleParent: false });
 	var logout_row = Ti.UI.createTableViewRow({ title: 'Logout', color: 'white', bubbleParent: false });
+	sectionOther.add(help_row);
 	sectionOther.add(logout_row);
 	leftMenu_table.data = [sectionHome, sectionRecordBooks, sectionNewRecordBook, sectionOther];
 	window.add(leftMenu_table);
-	
+	insertChildren();
 
 function insertChildren()
 {
@@ -99,6 +101,10 @@ function insertChildren()
         leftMenu_table.data = [sectionHome, sectionRecordBooks, sectionNewRecordBook, sectionOther];
 }
 
+help_row.addEventListener('click', function() {
+	Ti.App.fireEvent('helpSection');
+});
+
 logout_row.addEventListener('click', function() {	
 	logout();
 	activityIndicator.show();
@@ -108,8 +114,16 @@ Ti.App.addEventListener('logoutClicked', function() {
 	activityIndicator.hide();
 });
 
+Ti.App.addEventListener('individualEdited', function() {
+	insertChildren();
+});
+
 Ti.App.addEventListener('showMenu', function() {
-		insertChildren();
+	navGroupWindow.show();
+});
+
+Ti.App.addEventListener('showLog', function() {
+	if(Titanium.Platform.osname == 'iphone') navGroupWindow.hide();
 });
 
 function newIndividual() {
@@ -152,8 +166,10 @@ leftMenu_table.addEventListener('click', function(e) {
 		return;
 	}
 	
-	Titanium.App.Properties.setString('child', e.row.object.id); 
-    Ti.App.fireEvent('changeUser');
+	if(e.row.object) { 
+		Titanium.App.Properties.setString('child', e.row.object.id); 
+    	Ti.App.fireEvent('changeUser');
+    }
 });
 	
 	

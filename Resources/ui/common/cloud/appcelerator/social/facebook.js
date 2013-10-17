@@ -1,13 +1,24 @@
 
 
-//Ti.Facebook.appid = '376270615819239';
-//Ti.Facebook.permissions = ['publish_actions'];
 var fb = require('facebook');
+	fb.appid = '553912771295725';
+	fb.permissions = ['email'];
+	fb.forceDialogAuth = true;  //This must be set to false to use iOS 6 and above login
+	
 fb.addEventListener('login', function(f) {
     if(f.success) {
-    	Ti.App.fireEvent('FBloginsuccessful');
- 		var user = externalAccountLoginACS();
-	  
+    	fb.reauthorize(['publish_actions'], 'me', function(e){
+	        if (e.success) {
+	            Ti.App.fireEvent('FBloginsuccessful');
+	 			var user = externalAccountLoginACS(f.data);
+	        } else {
+	            if (e.error) {
+	                alert(e.error);
+	            } else {
+	                alert("Unknown result");
+	            }
+	        }
+	    });  
     }		
     else {
     	Ti.App.fireEvent('FBloginClosed')
@@ -17,7 +28,7 @@ fb.addEventListener('login', function(f) {
 
 function facebookGraphRequestACS(path, params, httpMethod)
 { 
-	Ti.Facebook.requestWithGraphPath(path, params, httpMethod, function(e) {
+	fb.requestWithGraphPath(path, params, httpMethod, function(e) {
 		   			if(e.success) {
 		   			 	var data= JSON.parse(e.result);
 		    			//updateUserACS(data);
@@ -30,7 +41,7 @@ function facebookGraphRequestACS(path, params, httpMethod)
 
 function facebookDialog(type, data)
 {
-	Titanium.Facebook.dialog(type, data, function(e) {
+	fb.dialog(type, data, function(e) {
 	    if(e.success && e.result) {
 	        alert("Success! New Post ID: " + e.result);
 	    } else {

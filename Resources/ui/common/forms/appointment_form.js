@@ -71,7 +71,6 @@ function appointment(input, navGroup)
 	
 	var window = Titanium.UI.createWindow({
   		backgroundColor:'white',
-  		title: 'Appointment',
   		layout: 'vertical',
   		height: 'auto',
 	});
@@ -81,6 +80,27 @@ function appointment(input, navGroup)
 		if(Titanium.Platform.osname == 'iphone') 
 			if(modalPicker) modalPicker.close();
 	});
+	
+	var the_view = Ti.UI.createView({ width: '60%', });
+	var the_name = Ti.UI.createLabel({ text: 'Appointment', font: { fontWeight: 'bold', fontSize: '22', }, color: 'white', });
+	var the_instruction = Ti.UI.createLabel({ text: 'Tap to view help', font: { fontSize: 10}, bottom: 0, });
+	the_view.add(the_name);
+	the_view.add(the_instruction);
+	the_view.addEventListener('click', function() {
+		var helpSection = require('ui/common/help_section/aboutAppointments/indexAppointments');
+			helpSection = new helpSection();
+			if(Titanium.Platform.osname == 'ipad') helpSection.show({ view: the_view });
+			else { 
+				helpSection.setTop(Titanium.Platform.displayCaps.platformHeight*0.9);
+				helpSection.animate(Ti.UI.createAnimation({
+					top: 0,
+					curve: Ti.UI.ANIMATION_CURVE_EASE_IN,
+					duration: 500
+				}));  
+				helpSection.open();
+			}		
+	});
+	window.setTitleControl(the_view);
 	
 	if(!navGroup) { 
 		var navGroupWindow = require('ui/handheld/ApplicationNavGroup');
@@ -410,7 +430,7 @@ function beforeSaving()
 			if(_child.length == 0) { //This individual doesnt exist, need to create new record book
 		     		var row_id = insertChildLocal(Titanium.App.Properties.getString('user'), indiv_first_name,indiv_last_name,null,null,null);
 					insertRelationshipLocal(row_id, Titanium.App.Properties.getString('user'), 'Relation Unknown: Tap to change');
-					//alert(indiv_name+" did not have a record book with StarsEarth. One has been created from them. You can find it in the main menu");
+					Ti.App.fireEvent('individualEdited');  //update main menu
 			}			
 			if(!appointment.entry_id) {
 				if(!_entry.id) {

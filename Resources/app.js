@@ -49,6 +49,7 @@ var Cloud = require('ti.cloud');
 	var mainTabGroup=null;
 	var mainCover = require('ui/mainCover');
 	var leftWindow=null;
+	var rightWindow=null;
 	var tabGroup = require('ui/handheld/ApplicationTabGroup');
 	if (isTablet) {
 		mainWindow = require('ui/handheld/RecordsWindow');
@@ -63,6 +64,15 @@ var Cloud = require('ti.cloud');
 			mainWindow = require('ui/handheld/RecordsWindow');   //require('ui/common/RecordsWindow');
 		}
 	}
+/*	initDBLocal();
+	leftWindow = require('ui/common/menus/leftMenu');
+		leftWindow = new leftWindow();
+		leftWindow.open();
+	rightWindow = require('ui/common/menus/rightMenu');
+		rightWindow = new rightWindow();
+		rightWindow.open();	
+		mainTabGroup = new mainWindow();
+		mainTabGroup.open();  */
 	var count=0;
 	
 	updateTable();
@@ -74,14 +84,23 @@ var Cloud = require('ti.cloud');
 		loadDatabase();
 	});
 	
+	Ti.App.addEventListener('startTutorial', function() {
+	/*	var bootCamp = require('ui/common/bootcamp/bootcamp');
+		bootCamp = new bootCamp();
+		bootCamp.open(); */
+	});
+	
 	Ti.App.addEventListener('databaseLoaded', function() {
+	/*	var bootCamp = require('ui/common/bootcamp/bootcamp');
+		bootCamp = new bootCamp();
+		bootCamp.open();  */
 		count++;
 		if(count > 1) return;
 		leftWindow = require('ui/common/menus/leftMenu');
 		leftWindow = new leftWindow();
 		leftWindow.open();
 		mainTabGroup = new mainWindow();
-		mainTabGroup.open();
+		mainTabGroup.open(); 
 	}); 
 	
 	Ti.App.addEventListener('logoutClicked', function() {
@@ -89,5 +108,5 @@ var Cloud = require('ti.cloud');
 		if(leftWindow) leftWindow.close();
 		if(mainTabGroup) mainTabGroup.close();
 	});  
-
+	
 })();

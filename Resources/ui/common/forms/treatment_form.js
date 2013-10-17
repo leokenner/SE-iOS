@@ -78,6 +78,28 @@ window.addEventListener('blur', function() {
 	if(modalPicker) modalPicker.close();
 });
 
+var the_view = Ti.UI.createView({ width: '60%', });
+	var the_name = Ti.UI.createLabel({ text: 'Treatment', font: { fontWeight: 'bold', fontSize: '22', }, color: 'white', });
+	var the_instruction = Ti.UI.createLabel({ text: 'Tap to view help', font: { fontSize: 10}, bottom: 0, });
+	the_view.add(the_name);
+	the_view.add(the_instruction);
+	the_view.addEventListener('click', function() {
+		var helpSection = require('ui/common/help_section/aboutTreatments/indexTreatments');
+			helpSection = new helpSection();
+			if(Titanium.Platform.osname == 'ipad') helpSection.show({ view: the_view });
+			else { 
+				helpSection.setTop(Titanium.Platform.displayCaps.platformHeight*0.9);
+				helpSection.animate(Ti.UI.createAnimation({
+					top: 0,
+					curve: Ti.UI.ANIMATION_CURVE_EASE_IN,
+					duration: 500
+				}));  
+				helpSection.open();
+			}	
+				
+	});
+	window.setTitleControl(the_view);
+
 if(!navGroup) { 
 	var navGroupWindow = require('ui/handheld/ApplicationNavGroup');
 		navGroupWindow = new navGroupWindow(window);
@@ -476,6 +498,7 @@ function beforeSaving()
 			if(_child.length == 0) { //This individual doesnt exist, need to create new record book
 		     		var row_id = insertChildLocal(Titanium.App.Properties.getString('user'), indiv_first_name,indiv_last_name,null,null,null);
 					insertRelationshipLocal(row_id, Titanium.App.Properties.getString('user'), 'Relation Unknown: Tap to change');
+					Ti.App.fireEvent('individualEdited'); //update the main menu
 			}			
 			if(!treatment.entry_id) {
 				if(!_entry.id) {
@@ -494,36 +517,6 @@ function beforeSaving()
 		treatment.id = insertTreatmentLocal(treatment.entry_id,treatment.appointment_id,start_date.text,end_date.text,medication.value,
 											type.text, dosage.value,frequency.text, interval.text, alert_text.text);
 		createTreatmentACS(treatment, _entry);
-	/*	var appointment_id=null;
-		var appointment_cloud_id=null;
-		if(treatment.appointment_id != null) {
-				appointment_cloud_id = getAppointmentLocal(treatment.appointment_id)[0].cloud_id;
-				appointment_id = '"'+treatment.appointment_id+'"';
-		}
-			var entry_id = '"'+treatment.entry_id+'"'; 
-			treatment.id = insertTreatmentLocal(entry_id,appointment_id,start_date.text,end_date.text,medication.value,
-											type.text, dosage.value,frequency.text, interval.text, alert_text.text);
-		
-		var entry_cloud_id = getEntryLocal(treatment.entry_id)[0].cloud_id;
-		createObjectACS('treatments', { id: treatment.id,
-										appointment_id: appointment_cloud_id, 
-										entry_id:  entry_cloud_id, 
-										start_date: treatment.start_date,
-										end_date: treatment.end_date,
-										medication: medication.value,
-										//prescribed_by: prescribed_by.value,
-										diagnosis: diagnosis.value, 
-										type: type.text,
-										dosage: dosage.value,
-										frequency: frequency.text,
-										interval: interval.text,
-										alert: alert_text.text,
-										symptoms: treatment.symptoms,
-										additional_notes: additional_notes.text,
-										status: status.text,
-										//facebook_id: treatment.facebook_id,
-									});
-									*/
 	}
 	updateRecordTimesForEntryLocal(treatment.entry_id,timeFormatted(new Date()).date,timeFormatted(new Date()).time);	
 	updateTreatmentLocal(treatment.id, 'updated_at', timeFormatted(new Date()).date+' '+timeFormatted(new Date()).time);

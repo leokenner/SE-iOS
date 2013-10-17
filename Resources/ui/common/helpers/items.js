@@ -3,7 +3,7 @@ function items(input, title)
 {
 	Ti.include('ui/common/database/database.js');
 	Ti.include('ui/common/helpers/dateTime.js');
-	Ti.include('ui/common/helpers/trie.js');
+	Ti.include('ui/common/helpers/strings.js');
 	
 	//get the index at which to insert the new time
 	//0 and above means insert below, -1 means insert above the first row, -2 means the time exists and no row should be added, 

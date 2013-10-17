@@ -16,12 +16,26 @@ function profile(input, navGroup)
 		title: input.first_name+"'s Details",
 		backgroundColor: 'white'
 	});
+	var modalPicker=null;
+	win.addEventListener('blur', function() {
+		//If there is a modalPicker open, close it
+		if(modalPicker) {
+			if(Titanium.Platform.osname == 'iphone') modalPicker.close();
+		}
+	});
 	
 	if(!navGroup)
 	{ 
 		var navGroupWindow = require('ui/handheld/ApplicationNavGroup');
 		navGroupWindow = new navGroupWindow(win);
 		navGroup = (navGroupWindow.getChildren())[0];
+		if(Titanium.Platform.osname == 'ipad') {
+			navGroupWindow = Ti.UI.iPad.createPopover({
+	    		width: 320,
+	    		height: 480,
+			});
+			navGroupWindow.add(navGroup);
+		}
 	}
 	
 	var cancel_btn = Ti.UI.createButton({
@@ -31,6 +45,10 @@ function profile(input, navGroup)
 	
 	cancel_btn.addEventListener('click', function() {
 		if(navGroupWindow) {
+			if(Titanium.Platform.osname == 'ipad') {
+				navGroupWindow.hide();
+				return;
+			}
 			var animation = Ti.UI.createAnimation({
 				top: Titanium.Platform.displayCaps.platformHeight*0.9,
 				curve: Ti.UI.ANIMATION_CURVE_EASE_IN,
@@ -81,8 +99,13 @@ function profile(input, navGroup)
 			});
 		
 		Ti.App.fireEvent('eventSaved');  //the local notifications need to be reset in the event of a change here
+		Ti.App.fireEvent('individualEdited');
 		Ti.App.fireEvent('profileChanged');
 		if(navGroupWindow) {
+			if(Titanium.Platform.osname == 'ipad') {
+				navGroupWindow.hide();
+				return;
+			}
 			var animation = Ti.UI.createAnimation({
 				top: Titanium.Platform.displayCaps.platformHeight*0.9,
 				curve: Ti.UI.ANIMATION_CURVE_EASE_IN,
@@ -197,15 +220,9 @@ function setTableHeight(table)
 	
 function changeDate(object)
 {
-var modalPicker = require('ui/common/helpers/modalPicker');
+modalPicker = require('ui/common/helpers/modalPicker');
 modalPicker = new modalPicker(Ti.UI.PICKER_TYPE_DATE,'DOB',object.text); 
 
-if(win.leftNavButton != null) { 
-	win.leftNavButton.setTouchEnabled(false);
-}
-win.rightNavButton.setTouchEnabled(false); 
-win.setTouchEnabled(false);
-table.scrollable = false;
 if(Titanium.Platform.osname == 'iphone') modalPicker.open();
 if(Titanium.Platform.osname == 'ipad') modalPicker.show({ view: object, });
 
@@ -215,13 +232,7 @@ var picker_closed = function() {
 		var newDate = modalPicker.result.toDateString().slice(4);
 		object.text = newDate;
 	}
-	win.setTouchEnabled(true);
-	if(win.leftNavButton != null) { 
-		win.leftNavButton.setTouchEnabled(true);
-	}
-	win.rightNavButton.setTouchEnabled(true); 
-	table.scrollable = true;
-	};
+};
 	
 	if(Titanium.Platform.osname == 'iphone') modalPicker.addEventListener('close', picker_closed);
 	if(Titanium.Platform.osname == 'ipad') modalPicker.addEventListener('hide', picker_closed);
@@ -229,15 +240,9 @@ var picker_closed = function() {
 
 
 function launchModalPicker(data,object) {
-var modalPicker = require('ui/common/helpers/modalPicker');
+modalPicker = require('ui/common/helpers/modalPicker');
 modalPicker = new modalPicker(null,data,object.text); 
 
-if(win.leftNavButton != null) { 
-	win.leftNavButton.setTouchEnabled(false);
-}
-win.rightNavButton.setTouchEnabled(false); 
-win.setTouchEnabled(false);
-table.scrollable = false;
 if(Titanium.Platform.osname == 'iphone') modalPicker.open();
 if(Titanium.Platform.osname == 'ipad') modalPicker.show({ view: object, });
 
@@ -246,13 +251,7 @@ var picker_closed = function() {
 	if(modalPicker.result) { 
 		object.text = modalPicker.result;
 	}
-	win.setTouchEnabled(true);
-	if(win.leftNavButton != null) { 
-		win.leftNavButton.setTouchEnabled(true);
-	}
-	win.rightNavButton.setTouchEnabled(true); 
-	table.scrollable = true;
-	};
+};
 	
 	if(Titanium.Platform.osname == 'iphone') modalPicker.addEventListener('close', picker_closed);
 	if(Titanium.Platform.osname == 'ipad') modalPicker.addEventListener('hide', picker_closed);
